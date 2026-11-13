@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RFMLS | Matthew Wnuk</title>
+  <meta name="description" content="RFMLS: a benchmark RF dataset for DARPA, hardware fingerprinting of Wi-Fi transmitters, signal-of-interest identification, and reinforcement learning receiver control.">
+  <link rel="canonical" href="https://www.matthewwnuk.com/rfmls.html">
+  <meta property="og:site_name" content="Matthew Wnuk">
+  <meta property="og:title" content="RFMLS | Matthew Wnuk">
+  <meta property="og:description" content="RFMLS: a benchmark RF dataset for DARPA, hardware fingerprinting of Wi-Fi transmitters, signal-of-interest identification, and reinforcement learning receiver control.">
+  <meta property="og:url" content="https://www.matthewwnuk.com/rfmls.html">
+  <meta property="og:image" content="https://www.matthewwnuk.com/img/headshot.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="site-name" href="./">Matthew Wnuk</a>
+      <nav aria-label="Main">
+        <a href="./#work">Work</a>
+        <a href="./#experience">Experience</a>
+        <a href="resume.html">Resume</a>
+        <a href="about.html">About</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <header class="case-head">
+      <div class="wrap">
+        <a class="back" href="./#work">&larr; All work</a>
+        <p class="eyebrow">SPAWAR and DARPA &middot; Machine Learning Engineer &middot; 2017 to 2019</p>
+        <h1>RFMLS</h1>
+        <p class="dek">Bringing deep learning to radio signals: a benchmark dataset, hardware fingerprinting, and learned receiver control.</p>
+        <ul class="tags"><li>Variational autoencoders</li><li>Complex-valued networks</li><li>Reinforcement learning</li></ul>
+      </div>
+    </header>
+
+    <div class="wrap">
+      <figure class="hero-fig card"><img src="img/rfmls-architecture.png" alt="Diagram of a variational autoencoder: input signal, encoder, Gaussian mixture latent space, decoder, and reconstruction, with reconstruction, KL divergence, and classification losses."></figure>
+
+      <section class="overview">
+        <div>
+          <h2>Overview</h2>
+          <dl class="facts"><div><dt>Organization</dt><dd>SPAWAR and DARPA</dd></div><div><dt>Role</dt><dd>Lead machine learning engineer</dd></div><div><dt>Period</dt><dd>2017 to 2019</dd></div><div><dt>Outcome</dt><dd>Up to 10,000 Wi-Fi transmitters told apart</dd></div></dl>
+          <p>Radio Frequency Machine Learning Systems (RFMLS) was a DARPA program early in the deep learning revolution (2017 to 2019). Its goal was to take the lessons learned from convolutional methods in vision and apply them to the RF domain.</p>
+          <p>We designed, aggregated, and processed the largest machine-learning-quality RF dataset available, defined a set of challenging RF problems that the dataset was suited to, and evaluated participants' methods. It was effectively the government's RF-domain version of ImageNet.</p>
+          <p>The dataset consisted of complex-valued signals, which let us explore data preprocessing methods, complex-valued neural network architectures, and FFT-matrix layer initialization techniques.</p>
+        </div>
+        <div class="overview-fig">
+        <figure class="photo-fig"><a href="img/rfmls-dataset.jpg"><img src="img/rfmls-dataset.jpg" alt="Two time-frequency plots showing hundreds of example signals scattered across a wideband recording, with dense background signals in red." loading="lazy"></a></figure>
+        </div>
+      </section>
+
+      <section class="techrow">
+        <div class="tfig card"><a href="img/rfmls-fingerprinting.jpg"><img src="img/rfmls-fingerprinting.jpg" alt="Scatter plot of a learned embedding in which each point is a transmission, colored by transmitter." loading="lazy"></a></div>
+        <div>
+          <p class="eyebrow">01</p>
+          <h2>Hardware Fingerprinting</h2>
+          <p>By exploiting the perturbations in received signals caused by imperfections in the transmitting chips, we were able to tell apart up to 10,000 unique Wi-Fi transmitters.</p>
+        </div>
+      </section>
+      <section class="techrow flip">
+        <div class="tfig card"><a href="img/rfmls-soi.png"><img src="img/rfmls-soi.png" alt="Four panels comparing truth signal labels, predicted signal labels, the actual spectrogram, and the maximum classification score. Probability of detection 0.9538, probability of false alarm 0.0000." loading="lazy"></a></div>
+        <div>
+          <p class="eyebrow">02</p>
+          <h2>Broadband SOI Identification with Confusers</h2>
+          <p>We injected signals of interest (SOI) into broadband background recordings. Our models separated the SOI from the background and classified it correctly. Injections were made at frequencies and bandwidths that are not characteristic of the injected signal, which forced the model to learn non-trivial features.</p>
+        </div>
+      </section>
+      <section class="techrow">
+        <div class="tfig card"><a href="img/rfmls-spectrum-awareness.gif"><img src="img/rfmls-spectrum-awareness.gif" alt="Dashboard showing a raw spectrogram, signal classifications, scan frequencies, and an environment model." loading="lazy"></a></div>
+        <div>
+          <p class="eyebrow">03</p>
+          <h2>RL Resource Management of Receiver</h2>
+          <p>A bespoke broadband receiver was built for this project. It let us develop a reinforcement learning policy controller that exploits the spectrum to search for, identify, track, and maintain signals of interest while continuing to explore the search space.</p>
+        </div>
+      </section>
+
+
+      <a class="next" href="world-action-models.html"><span class="eyebrow">Next project</span><span class="next-title">World-Action Models for Robot Manipulation &rarr;</span></a>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div>
+        <p class="foot-title">Get in touch</p>
+        <p>Interesting problems in robotics and machine learning, collaboration, or questions about past work.</p>
+      </div>
+      <div class="foot-links"><a href="mailto:matthew.wnuk@gmail.com">matthew.wnuk@gmail.com</a><a href="https://www.linkedin.com/in/matthewwnuk">LinkedIn</a><a href="resume.html">Resume</a></div>
+    </div>
+  </footer>
+</body>
+</html>

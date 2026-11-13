@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Visual Speech Recognition (Lip Reading) | Matthew Wnuk</title>
+  <meta name="description" content="An in-car lip-reading system developed at Sony Electronics: data curation, custom 3D ResNets, temporal receptive fields, and online refinement with MFCC features.">
+  <link rel="canonical" href="https://www.matthewwnuk.com/visual-speech-recognition-lip-reading.html">
+  <meta property="og:site_name" content="Matthew Wnuk">
+  <meta property="og:title" content="Visual Speech Recognition (Lip Reading) | Matthew Wnuk">
+  <meta property="og:description" content="An in-car lip-reading system developed at Sony Electronics: data curation, custom 3D ResNets, temporal receptive fields, and online refinement with MFCC features.">
+  <meta property="og:url" content="https://www.matthewwnuk.com/visual-speech-recognition-lip-reading.html">
+  <meta property="og:image" content="https://www.matthewwnuk.com/img/headshot.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="site-name" href="./">Matthew Wnuk</a>
+      <nav aria-label="Main">
+        <a href="./#work">Work</a>
+        <a href="./#experience">Experience</a>
+        <a href="resume.html">Resume</a>
+        <a href="about.html">About</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <header class="case-head">
+      <div class="wrap">
+        <a class="back" href="./#work">&larr; All work</a>
+        <p class="eyebrow">Sony Electronics &middot; Staff Machine Learning Engineer &middot; 2020 to 2022</p>
+        <h1>Visual Speech Recognition (Lip Reading)</h1>
+        <p class="dek">An in-car lip-reading system that keeps speech recognition working in noisy cabins.</p>
+        <ul class="tags"><li>3D ResNets</li><li>Sequence-to-sequence</li><li>CTC</li><li>Patented</li></ul>
+      </div>
+    </header>
+
+    <div class="wrap">
+      <figure class="hero-fig card"><img src="img/vsr-rig.png" alt="Three views of a seated speaker facing a curved panel of cameras, with cameras placed at 30 degree offsets horizontally and vertically."></figure>
+
+      <section class="overview">
+        <div>
+          <h2>Overview</h2>
+          <dl class="facts"><div><dt>Organization</dt><dd>Sony Electronics</dd></div><div><dt>Role</dt><dd>Tech lead</dd></div><div><dt>Period</dt><dd>2020 to 2022</dd></div><div><dt>Outcome</dt><dd>One granted US patent and one international application</dd></div></dl>
+          <p>Visual speech recognition (lip reading) was an effort I led at Sony Electronics to develop an in-car application of lip-reading technology. In the presence of ambient noise, audio-based automatic speech recognition degrades in accuracy. To address this, we built a pipeline that augments or replaces ASR using video of the speaker, with no audio required.</p>
+          <p>We curated a large internal dataset of phrases covering entertainment, environmental, and vehicle control commands. We reproduced all the major published work in the area, tested it against our internal dataset, and expanded on it. This work led to several patents for me and the team.</p>
+        </div>
+        <div class="overview-fig">
+        <figure class="photo-fig"><a href="img/vsr-model-zoo.jpg"><img src="img/vsr-model-zoo.jpg" alt="Overview of model configurations: front ends including LipNet, LSVSR, ResNet3D, and Inception3D, and recurrent back ends including LipNet, hybrid attention CTC, LSVSR, and LCANet." loading="lazy"></a></figure>
+        </div>
+      </section>
+
+      <section class="techrow">
+        <div class="tfig card"><a href="img/vsr-trf.png"><img src="img/vsr-trf.png" alt="Diagram of a convolution kernel sliding along the time axis of a feature map, labelling kernel size, stride, zero padding, and the temporal receptive field." loading="lazy"></a></div>
+        <div>
+          <p class="eyebrow">01</p>
+          <h2>Temporal Receptive Fields</h2>
+          <p>One of the main novel contributions of this project was defining targeted temporal receptive fields for spatio-temporal data and studying their effect on visual speech recognition.</p>
+        </div>
+      </section>
+      <section class="techrow flip">
+        <div class="tfig card"><a href="img/vsr-feature-extraction.png"><img src="img/vsr-feature-extraction.png" alt="A stack of mouth-region video frames passing through the VSR model to produce a sequence of feature maps, with the 3D convolution equation below." loading="lazy"></a></div>
+        <div>
+          <p class="eyebrow">02</p>
+          <h2>Spatio-Temporal Feature Extraction</h2>
+          <p>Most major publications in this space use spatio-temporal feature extractors: 3D convolutional networks. Our best-performing models were custom 3D ResNets designed in-house.</p>
+        </div>
+      </section>
+      <section class="techrow">
+        <div class="tfig card"><a href="img/vsr-mfcc.png"><img src="img/vsr-mfcc.png" alt="Block diagram: video and audio are preprocessed, mouth frames go through the VSR model, which outputs a decoded string and predicted MFCC features. The predicted features are compared with MFCCs computed from the audio to backpropagate an error." loading="lazy"></a></div>
+        <div>
+          <p class="eyebrow">03</p>
+          <h2>Online Refinement with MFCC Features</h2>
+          <p>One useful property of VSR data is that the audio comes along with the video. Audio was not used to generate the token sequence, but it could be used to validate and refine results after inference, by adding a fully connected head that generates MFCC features and is trained with a reconstruction loss.</p>
+        </div>
+      </section>
+
+
+      <a class="next" href="retail-applications.html"><span class="eyebrow">Next project</span><span class="next-title">Retail Applications &rarr;</span></a>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div>
+        <p class="foot-title">Get in touch</p>
+        <p>Interesting problems in robotics and machine learning, collaboration, or questions about past work.</p>
+      </div>
+      <div class="foot-links"><a href="mailto:matthew.wnuk@gmail.com">matthew.wnuk@gmail.com</a><a href="https://www.linkedin.com/in/matthewwnuk">LinkedIn</a><a href="resume.html">Resume</a></div>
+    </div>
+  </footer>
+</body>
+</html>
