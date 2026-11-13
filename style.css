@@ -57,7 +57,7 @@ h3 { font-size: 1.14rem; font-weight: 700; }
 /* Header */
 .site-header { position: sticky; top: 0; z-index: 10; background: rgba(252, 252, 251, 0.94); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
 .site-header .wrap { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 24px; padding-block: 16px; }
-.site-name { font-family: var(--serif); font-weight: 600; font-size: 1.2rem; color: var(--ink); text-decoration: none; }
+.site-name { display: inline-flex; align-items: center; gap: 10px; font-family: var(--serif); font-weight: 600; font-size: 1.2rem; color: var(--ink); text-decoration: none; }
 .site-header nav { display: flex; flex-wrap: wrap; gap: 4px 26px; }
 .site-header nav a { color: var(--text); text-decoration: none; font-size: 0.98rem; font-weight: 600; }
 .site-header nav a:hover, .site-header nav a[aria-current="page"] { color: var(--accent); }
