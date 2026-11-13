@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>World models: a guide to deep learning and robotics | Matthew Wnuk</title>
+  <meta name="description" content="Models that predict what happens next, and models that predict and act together.">
+  <link rel="canonical" href="https://www.matthewwnuk.com/guide-world-models.html">
+  <meta property="og:site_name" content="Matthew Wnuk">
+  <meta property="og:title" content="World models: a guide to deep learning and robotics | Matthew Wnuk">
+  <meta property="og:description" content="Models that predict what happens next, and models that predict and act together.">
+  <meta property="og:url" content="https://www.matthewwnuk.com/guide-world-models.html">
+  <meta property="og:image" content="https://www.matthewwnuk.com/img/headshot.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="site-name" href="./"><img src="favicon.svg" alt="" width="28" height="28">Matthew Wnuk</a>
+      <nav aria-label="Main">
+        <a href="./#work">Work</a>
+        <a href="guide.html" aria-current="page">Guide</a>
+        <a href="./#experience">Experience</a>
+        <a href="resume.html">Resume</a>
+        <a href="about.html">About</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+
+    <header class="case-head guide-head">
+      <div class="wrap">
+        <a class="back" href="guide.html">&larr; All topics</a>
+        <p class="eyebrow">Guide &middot; Robots &middot; Topic 9 of 15</p>
+        <h1>World models</h1>
+        <p class="dek">Models that predict what happens next, and models that predict and act together.</p>
+        <p class="gmeta"><span>2 minute read</span></p>
+      </div>
+    </header>
+    <div class="wrap note">
+      <aside class="toc card"><h2>In this note</h2><ol><li><a href="#s34">World models: learning to predict what happens next</a></li><li><a href="#s35">World-action models: predict the future and act, in one model</a></li><li><a href="#s36">Three uses for a world model, and one caution</a></li></ol>
+        <h2>Key points</h2><ul class="keys"><li>A policy answers &quot;what should I do?&quot;. A world model answers &quot;what will happen if I do this?&quot;.</li><li>The bet: a model that can predict what its actions will cause has learned something a pure policy has not.</li><li>A world model is only as useful as it is faithful; always check it against real outcomes.</li></ul></aside>
+      <article class="note-body">
+<section class="note-sec"><h2 id="s34">World models: learning to predict what happens next</h2>
+<p class="lede">A world model takes the current situation and a proposed action, and predicts the outcome.</p>
+<figure class="gfig card slide"><img src="img/guide/s34.jpg" width="1500" height="586" loading="lazy" alt="World models: learning to predict what happens next"></figure>
+<p>The idea is old in control: have a model of the dynamics and use it to plan. What is new is learning the model from video at scale, using the video generation technology from section 5. An action-conditioned video model takes the current frames and a sequence of robot actions and generates the frames that would follow.</p>
+<p class="key"><span>Key point</span>A policy answers &quot;what should I do?&quot;. A world model answers &quot;what will happen if I do this?&quot;.</p></section>
+
+<section class="note-sec"><h2 id="s35">World-action models: predict the future and act, in one model</h2>
+<p class="lede">Instead of a separate policy and world model, train one network to produce both the future and the actions that cause it.</p>
+<figure class="gfig card slide"><img src="img/guide/s35.jpg" width="1500" height="586" loading="lazy" alt="World-action models: predict the future and act, in one model"></figure>
+<p>This is an active research direction and results are still being established, so present it as a bet, not a settled answer. The appeal is that video prediction gives supervision on every pixel or latent of every frame, while action imitation gives only a few numbers per step. The latent versus pixel debate mirrors the JEPA discussion in section 4.</p>
+<p class="key"><span>Key point</span>The bet: a model that can predict what its actions will cause has learned something a pure policy has not.</p></section>
+
+<section class="note-sec"><h2 id="s36">Three uses for a world model, and one caution</h2>
+<p class="lede">What teams actually do with learned simulators today.</p>
+<figure class="gfig card slide"><img src="img/guide/s36.jpg" width="1500" height="586" loading="lazy" alt="Three uses for a world model, and one caution"></figure>
+<p>A learned simulator that is optimistic will rank bad policies highly. The validation that matters is correlation between model-based evaluation and real-robot evaluation on the same set of policies.</p>
+<p class="key"><span>Key point</span>A world model is only as useful as it is faithful; always check it against real outcomes.</p></section>
+
+        <section class="note-sec split2 more"><div><h2>In my work</h2><ul class="links"><li><a href="world-action-models.html">World-action models for robot control</a></li></ul></div></section>
+        <nav class="pager" aria-label="Guide pages"><a href="guide-robot-policies.html"><span>Previous</span>Robot policies today</a><a class="pnext" href="guide-robot-data.html"><span>Next</span>Data for robots</a></nav>
+      </article>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div>
+        <p class="foot-title">Get in touch</p>
+        <p>Interesting problems in robotics and machine learning, collaboration, or questions about past work.</p>
+      </div>
+      <div class="foot-links"><a href="mailto:matthew.wnuk@gmail.com">matthew.wnuk@gmail.com</a><a href="https://www.linkedin.com/in/matthewwnuk">LinkedIn</a><a href="https://github.com/wnukmat">GitHub</a><a href="https://huggingface.co/mwnuk">Hugging Face</a><a href="resume.html">Resume</a></div>
+    </div>
+  </footer>
+</body>
+</html>

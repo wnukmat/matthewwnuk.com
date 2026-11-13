@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>The transformer: a guide to deep learning and robotics | Matthew Wnuk</title>
+  <meta name="description" content="One block, stacked many times, that now reads text, images, video and robot actions.">
+  <link rel="canonical" href="https://www.matthewwnuk.com/guide-transformer.html">
+  <meta property="og:site_name" content="Matthew Wnuk">
+  <meta property="og:title" content="The transformer: a guide to deep learning and robotics | Matthew Wnuk">
+  <meta property="og:description" content="One block, stacked many times, that now reads text, images, video and robot actions.">
+  <meta property="og:url" content="https://www.matthewwnuk.com/guide-transformer.html">
+  <meta property="og:image" content="https://www.matthewwnuk.com/img/headshot.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="site-name" href="./"><img src="favicon.svg" alt="" width="28" height="28">Matthew Wnuk</a>
+      <nav aria-label="Main">
+        <a href="./#work">Work</a>
+        <a href="guide.html" aria-current="page">Guide</a>
+        <a href="./#experience">Experience</a>
+        <a href="resume.html">Resume</a>
+        <a href="about.html">About</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+
+    <header class="case-head guide-head">
+      <div class="wrap">
+        <a class="back" href="guide.html">&larr; All topics</a>
+        <p class="eyebrow">Guide &middot; Foundations &middot; Topic 3 of 15</p>
+        <h1>The transformer</h1>
+        <p class="dek">One block, stacked many times, that now reads text, images, video and robot actions.</p>
+        <p class="gmeta"><span>4 minute read</span></p>
+      </div>
+    </header>
+    <div class="wrap note">
+      <aside class="toc card"><h2>In this note</h2><ol><li><a href="#tokens">Everything becomes tokens</a></li><li><a href="#attention">Attention: every token looks at every other token</a></li><li><a href="#block">Inside one block</a></li><li><a href="#shapes">Three shapes, and how they are made fast</a></li><li><a href="#mistakes">Common mistakes</a></li></ol>
+        <h2>Key points</h2><ul class="keys"><li>Once text, images and actions are all tokens, one model can read and write all of them.</li><li>Attention replaces fixed wiring with learned, input-dependent connections.</li><li>Attention mixes information between tokens; the MLP processes each token on its own.</li><li>Decoder-only models dominate generation; encoders dominate perception.</li></ul></aside>
+      <article class="note-body">
+<section class="note-sec"><h2 id="tokens">Everything becomes tokens</h2>
+<p>A transformer does not read words or pixels. It reads one sequence of vectors, called tokens, and the first job of any model is to turn its input into that sequence.</p>
+<figure class="gfig card "><img src="img/guide/g-tokens.jpg" width="1500" height="478" loading="lazy" alt="Text, an image, video and robot data each converted into a row of tokens that join one sequence"><figcaption>Four kinds of input, one sequence. The image row shows a real robot camera frame and real patches cut from it.</figcaption></figure>
+<p>Text is split into sub-word pieces, and each piece is looked up in a table of learned vectors. An image is cut into a grid of small patches, for example 16 by 16 pixels, and each patch is flattened and projected to a vector. A 224-pixel image cut this way gives 14 &times; 14 = 196 tokens. Video adds a time axis. Robot joint angles and actions are either sorted into numbered bins, so they look like words, or projected directly as continuous vectors.</p>
+<p>After this step the model neither knows nor cares where a token came from. That indifference is the reason one architecture now serves language, vision and robot control.</p></section>
+
+<section class="note-sec"><h2 id="attention">Attention: every token looks at every other token</h2>
+<p>Attention is how a token gathers the context it needs. Each token produces three vectors: a <strong>query</strong> (what am I looking for?), a <strong>key</strong> (what do I contain?) and a <strong>value</strong> (what do I pass on?). A token&rsquo;s query is compared with every key. The scores go through a softmax, so they become weights that sum to one, and the token&rsquo;s new vector is the weighted sum of the values.</p>
+<figure class="gfig card narrow"><img src="img/guide/g-attention.jpg" width="1396" height="814" loading="lazy" alt="A five by five grid of attention weights for the words pick, up, the, red, cup"><figcaption>Illustrative weights, as percentages. Each row is one token deciding where to look.</figcaption></figure>
+<p>Read the last row of the grid. The token &ldquo;cup&rdquo; puts most of its weight on &ldquo;red&rdquo; and &ldquo;pick&rdquo;, so its updated vector now means something like &ldquo;the red cup that is to be picked&rdquo;. A model runs several of these in parallel, called heads, so that different heads can follow different relationships.</p>
+<p><strong>Self-attention</strong> relates tokens within one sequence. <strong>Cross-attention</strong> lets one sequence read another, for example action tokens reading image features. The cost of attention grows with the square of the sequence length, which is why video and long robot histories are expensive.</p></section>
+
+<section class="note-sec"><h2 id="block">Inside one block</h2>
+<figure class="gfig card narrow"><img src="img/guide/g-block.jpg" width="1376" height="814" loading="lazy" alt="A transformer block: tokens, normalisation, self-attention, normalisation, MLP, with residual connections around each sub-layer"><figcaption>Read from the bottom up. The orange lines are residual connections.</figcaption></figure>
+<p>A transformer is the same block repeated many times. Each block has two parts. The attention sub-layer moves information between tokens. The MLP sub-layer is a small network applied to each token on its own, and it holds most of the model&rsquo;s parameters.</p>
+<p>Each sub-layer first normalises its input and then adds its output back to that input. The addition is the residual connection: it gives gradients a direct path to the early layers, which is what allows very deep stacks to train.</p>
+<p>Attention on its own has no sense of order, so position has to be injected. Most current models use rotary position encoding, which rotates the query and key vectors by an angle that depends on position, so attention can reason about how far apart two tokens are.</p></section>
+
+<section class="note-sec"><h2 id="shapes">Three shapes, and how they are made fast</h2>
+<div class="tablewrap"><table class="gtable"><thead><tr><th>Shape</th><th>What a token can see</th><th>Good at</th><th>Where it is used</th></tr></thead><tbody>
+<tr><th>Encoder</th><td>All tokens, in both directions</td><td>Understanding an input</td><td>Vision encoders, embeddings, classifiers</td></tr>
+<tr><th>Decoder</th><td>Only earlier tokens</td><td>Generating a sequence step by step</td><td>Language models, vision-language models</td></tr>
+<tr><th>Encoder-decoder</th><td>The decoder also reads the encoder&rsquo;s output</td><td>Mapping one sequence to another</td><td>Translation, some action policies</td></tr></tbody></table></div>
+<p>When a decoder generates, the keys and values of earlier tokens do not change, so they are stored and reused. This is the <strong>KV cache</strong>, and it is why producing the next token is far cheaper than reprocessing the whole prompt. Robot policies lean on the same idea: a large model encodes the camera images once, and a small action network reuses that result many times. The note on <a href="guide-robot-policies.html">robot policies</a> picks this up.</p></section>
+
+<section class="note-sec split2">
+<div><h2 id="mistakes">Common mistakes</h2><ul>
+<li><strong>Forgetting position.</strong> Without position information a transformer treats its input as an unordered set.</li>
+<li><strong>Reading attention maps as explanations.</strong> They show where weight went, which is a hint about the model&rsquo;s reasoning and not a proof.</li>
+<li><strong>Ignoring the quadratic cost.</strong> Doubling image resolution gives four times the tokens and about sixteen times the attention cost.</li></ul></div>
+<div><h2 id="terms">Terms</h2><dl class="terms">
+<dt>Token</dt><dd>One unit of input, represented as a vector.</dd>
+<dt>Embedding</dt><dd>The vector a token is mapped to.</dd>
+<dt>Head</dt><dd>One of several attention computations run in parallel.</dd>
+<dt>Context length</dt><dd>The most tokens the model can read at once.</dd></dl></div></section>
+
+        <section class="note-sec split2 more"><div><h2>In my work</h2><ul class="links"><li><a href="caseid.html">CaseID: a Vision Transformer encoder in production</a></li></ul></div><div><h2>Further reading</h2><ul class="links"><li><a href="https://arxiv.org/abs/1706.03762">Vaswani et al., 2017. Attention Is All You Need.</a></li><li><a href="https://arxiv.org/abs/2010.11929">Dosovitskiy et al., 2020. An Image Is Worth 16x16 Words.</a></li><li><a href="https://arxiv.org/abs/2104.09864">Su et al., 2021. RoFormer: Enhanced Transformer with Rotary Position Embedding.</a></li></ul></div></section>
+        <nav class="pager" aria-label="Guide pages"><a href="guide-foundations.html"><span>Previous</span>Foundations that survived</a><a class="pnext" href="guide-representation-learning.html"><span>Next</span>Representation learning</a></nav>
+      </article>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div>
+        <p class="foot-title">Get in touch</p>
+        <p>Interesting problems in robotics and machine learning, collaboration, or questions about past work.</p>
+      </div>
+      <div class="foot-links"><a href="mailto:matthew.wnuk@gmail.com">matthew.wnuk@gmail.com</a><a href="https://www.linkedin.com/in/matthewwnuk">LinkedIn</a><a href="https://github.com/wnukmat">GitHub</a><a href="https://huggingface.co/mwnuk">Hugging Face</a><a href="resume.html">Resume</a></div>
+    </div>
+  </footer>
+</body>
+</html>

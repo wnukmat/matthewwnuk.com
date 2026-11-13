@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Deployment on the robot: a guide to deep learning and robotics | Matthew Wnuk</title>
+  <meta name="description" content="Making the model small enough and fast enough, then learning from the field.">
+  <link rel="canonical" href="https://www.matthewwnuk.com/guide-deployment.html">
+  <meta property="og:site_name" content="Matthew Wnuk">
+  <meta property="og:title" content="Deployment on the robot: a guide to deep learning and robotics | Matthew Wnuk">
+  <meta property="og:description" content="Making the model small enough and fast enough, then learning from the field.">
+  <meta property="og:url" content="https://www.matthewwnuk.com/guide-deployment.html">
+  <meta property="og:image" content="https://www.matthewwnuk.com/img/headshot.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="site-name" href="./"><img src="favicon.svg" alt="" width="28" height="28">Matthew Wnuk</a>
+      <nav aria-label="Main">
+        <a href="./#work">Work</a>
+        <a href="guide.html" aria-current="page">Guide</a>
+        <a href="./#experience">Experience</a>
+        <a href="resume.html">Resume</a>
+        <a href="about.html">About</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+
+    <header class="case-head guide-head">
+      <div class="wrap">
+        <a class="back" href="guide.html">&larr; All topics</a>
+        <p class="eyebrow">Guide &middot; Practice &middot; Topic 13 of 15</p>
+        <h1>Deployment on the robot</h1>
+        <p class="dek">Making the model small enough and fast enough, then learning from the field.</p>
+        <p class="gmeta"><span>2 minute read</span></p>
+      </div>
+    </header>
+    <div class="wrap note">
+      <aside class="toc card"><h2>In this note</h2><ol><li><a href="#s45">Making the model fit: quantisation, pruning, distillation</a></li><li><a href="#s46">The latency budget: answer before the world moves on</a></li><li><a href="#s47">The data flywheel: the best data comes from deployment</a></li></ol>
+        <h2>Key points</h2><ul class="keys"><li>Quantisation is the first tool to reach for; always re-measure task success afterwards.</li><li>Latency is a correctness issue: an action computed from an old image is an action for a world that no longer exists.</li><li>The team that turns field failures into training data fastest improves fastest.</li></ul></aside>
+      <article class="note-body">
+<section class="note-sec"><h2 id="s45">Making the model fit: quantisation, pruning, distillation</h2>
+<p class="lede">A model that needs a data-centre GPU is no use on a battery-powered robot.</p>
+<figure class="gfig card slide"><img src="img/guide/s45.jpg" width="1500" height="586" loading="lazy" alt="Making the model fit: quantisation, pruning, distillation"></figure>
+<p>FP16 inference is widely supported and usually lossless in practice, though long accumulations and certain normalisation layers need care. INT8 requires representative calibration data to choose the ranges. On robot accelerators, the supported operations and precisions are fixed by the hardware, so check them early. The closed-loop check matters because a tiny per-step error in actions can accumulate over hundreds of steps.</p>
+<p class="key"><span>Key point</span>Quantisation is the first tool to reach for; always re-measure task success afterwards.</p></section>
+
+<section class="note-sec"><h2 id="s46">The latency budget: answer before the world moves on</h2>
+<p class="lede">The model&#x27;s answer always arrives late; the design goal is to make that harmless.</p>
+<figure class="gfig card slide"><img src="img/guide/s46.jpg" width="1500" height="586" loading="lazy" alt="The latency budget: answer before the world moves on"></figure>
+<p>The timeline is from my pi-zero video and uses the timing table in the pi-zero paper: images are encoded once into 768 tokens and cached, the action expert then runs ten Euler steps over 51 tokens each, and the result is 50 actions. On-board total is 73 milliseconds; with an off-board GPU it is 86 milliseconds including 13 for the network. Real-time chunking is a later technique for blending a late-arriving chunk into the actions already being executed.</p>
+<p class="key"><span>Key point</span>Latency is a correctness issue: an action computed from an old image is an action for a world that no longer exists.</p></section>
+
+<section class="note-sec"><h2 id="s47">The data flywheel: the best data comes from deployment</h2>
+<p class="lede">A deployed robot meets situations the training set never covered; capture them and feed them back.</p>
+<figure class="gfig card slide"><img src="img/guide/s47.jpg" width="1500" height="586" loading="lazy" alt="The data flywheel: the best data comes from deployment"></figure>
+<p>Performance monitoring was the last box of the old pipeline diagram. Today it is the start of the next training cycle. Human interventions are especially useful: the moment an operator takes over marks exactly where the policy was wrong, and the correction is a demonstration of how to recover.</p>
+<p class="key"><span>Key point</span>The team that turns field failures into training data fastest improves fastest.</p></section>
+
+        <section class="note-sec split2 more"><div><h2>In my work</h2><ul class="links"><li><a href="caseid.html">CaseID: the full pipeline on a Jetson</a></li><li><a href="retail-applications.html">Retail applications: models at the edge</a></li></ul></div></section>
+        <nav class="pager" aria-label="Guide pages"><a href="guide-training-at-scale.html"><span>Previous</span>Training at scale</a><a class="pnext" href="guide-understanding-and-safety.html"><span>Next</span>Understanding and safety</a></nav>
+      </article>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div>
+        <p class="foot-title">Get in touch</p>
+        <p>Interesting problems in robotics and machine learning, collaboration, or questions about past work.</p>
+      </div>
+      <div class="foot-links"><a href="mailto:matthew.wnuk@gmail.com">matthew.wnuk@gmail.com</a><a href="https://www.linkedin.com/in/matthewwnuk">LinkedIn</a><a href="https://github.com/wnukmat">GitHub</a><a href="https://huggingface.co/mwnuk">Hugging Face</a><a href="resume.html">Resume</a></div>
+    </div>
+  </footer>
+</body>
+</html>

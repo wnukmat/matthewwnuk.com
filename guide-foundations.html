@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Foundations that survived: a guide to deep learning and robotics | Matthew Wnuk</title>
+  <meta name="description" content="The training loop, learning rates, losses, overfitting and the stabilisers that make deep networks trainable.">
+  <link rel="canonical" href="https://www.matthewwnuk.com/guide-foundations.html">
+  <meta property="og:site_name" content="Matthew Wnuk">
+  <meta property="og:title" content="Foundations that survived: a guide to deep learning and robotics | Matthew Wnuk">
+  <meta property="og:description" content="The training loop, learning rates, losses, overfitting and the stabilisers that make deep networks trainable.">
+  <meta property="og:url" content="https://www.matthewwnuk.com/guide-foundations.html">
+  <meta property="og:image" content="https://www.matthewwnuk.com/img/headshot.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="site-name" href="./"><img src="favicon.svg" alt="" width="28" height="28">Matthew Wnuk</a>
+      <nav aria-label="Main">
+        <a href="./#work">Work</a>
+        <a href="guide.html" aria-current="page">Guide</a>
+        <a href="./#experience">Experience</a>
+        <a href="resume.html">Resume</a>
+        <a href="about.html">About</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+
+    <header class="case-head guide-head">
+      <div class="wrap">
+        <a class="back" href="guide.html">&larr; All topics</a>
+        <p class="eyebrow">Guide &middot; Foundations &middot; Topic 2 of 15</p>
+        <h1>Foundations that survived</h1>
+        <p class="dek">The training loop, learning rates, losses, overfitting and the stabilisers that make deep networks trainable.</p>
+        <p class="gmeta"><span>3 minute read</span></p>
+      </div>
+    </header>
+    <div class="wrap note">
+      <aside class="toc card"><h2>In this note</h2><ol><li><a href="#s5">The training loop: four steps, repeated millions of times</a></li><li><a href="#s6">Learning rate: warm up, then decay</a></li><li><a href="#s7">Loss functions: telling the model what &quot;wrong&quot; means</a></li><li><a href="#s8">Overfitting, underfitting and capacity</a></li><li><a href="#s9">The stabilisers: regularisation, normalisation and residuals</a></li></ol>
+        <h2>Key points</h2><ul class="keys"><li>Training is a search for weights that make the loss small on data the model has not memorised.</li><li>If training diverges or stalls, look at the learning rate before anything else.</li><li>Pick the loss that matches the kind of output: a class, a number, a distribution, or a similarity.</li><li>Watch the gap between training and validation loss; that gap is overfitting.</li><li>Residual connections and normalisation make deep models trainable; regularisation makes them generalise.</li></ul></aside>
+      <article class="note-body">
+<section class="note-sec"><h2 id="s5">The training loop: four steps, repeated millions of times</h2>
+<p class="lede">Every model in this deck, from a small classifier to a robot foundation model, is trained this way.</p>
+<figure class="gfig card slide"><img src="img/guide/s05.jpg" width="1500" height="586" loading="lazy" alt="The training loop: four steps, repeated millions of times"></figure>
+<p>Forward pass: the model turns a batch of inputs into predictions. Loss: one number that says how wrong the predictions are. Backward pass: backpropagation applies the chain rule to find how much each weight contributed to the loss; that is the gradient. Update: the optimizer nudges every weight a small step against its gradient. AdamW is the default optimizer today: it scales each weight&#x27;s step by its own gradient history and applies weight decay separately.</p>
+<p class="key"><span>Key point</span>Training is a search for weights that make the loss small on data the model has not memorised.</p></section>
+
+<section class="note-sec"><h2 id="s6">Learning rate: warm up, then decay</h2>
+<p class="lede">The learning rate is the size of each update step, and it is the most important number you will tune.</p>
+<figure class="gfig card slide"><img src="img/guide/s06.jpg" width="1500" height="586" loading="lazy" alt="Learning rate: warm up, then decay"></figure>
+<p>Warmup matters most for transformers. The curve is illustrative: a short linear ramp followed by a cosine. Important check for later: make sure the model reaches its plateau while the learning rate is still meaningfully above zero. A metric that stops improving only because the schedule reached zero is not converged.</p>
+<p class="key"><span>Key point</span>If training diverges or stalls, look at the learning rate before anything else.</p></section>
+
+<section class="note-sec"><h2 id="s7">Loss functions: telling the model what &quot;wrong&quot; means</h2>
+<p class="lede">The loss is the only signal the model gets, so choosing it is choosing what the model cares about.</p>
+<figure class="gfig card slide"><img src="img/guide/s07.jpg" width="1500" height="586" loading="lazy" alt="Loss functions: telling the model what &quot;wrong&quot; means"></figure>
+<p>Cross entropy is what every language model trains with: predict the next token. MSE predicts the mean, which is why naive action regression blurs between two valid ways to do a task; that problem is what diffusion policies solve later in the deck. Contrastive losses do not need labels, only pairs known to match.</p>
+<p class="key"><span>Key point</span>Pick the loss that matches the kind of output: a class, a number, a distribution, or a similarity.</p></section>
+
+<section class="note-sec"><h2 id="s8">Overfitting, underfitting and capacity</h2>
+<p class="lede">The goal is low error on data the model has never seen, not on the data it trained on.</p>
+<figure class="gfig card slide"><img src="img/guide/s08.jpg" width="1500" height="586" loading="lazy" alt="Overfitting, underfitting and capacity"></figure>
+<p>This is the one content slide that existed in the old deck. The classic picture still holds for small data: stop when validation loss turns up. The modern caveat is that heavily over-parameterised models trained on huge datasets can pass through the overfitting regime and improve again, which is called double descent. For junior engineers the practical rule is simple: always hold out data, and always plot both curves.</p>
+<p class="key"><span>Key point</span>Watch the gap between training and validation loss; that gap is overfitting.</p></section>
+
+<section class="note-sec"><h2 id="s9">The stabilisers: regularisation, normalisation and residuals</h2>
+<p class="lede">Three small ideas that make deep networks trainable and keep them from memorising.</p>
+<figure class="gfig card slide"><img src="img/guide/s09.jpg" width="1500" height="586" loading="lazy" alt="The stabilisers: regularisation, normalisation and residuals"></figure>
+<p>L1 and elastic net from the old deck are rarely used in deep learning now; weight decay is the form of L2 that survived. Augmentation is especially important in robotics because robot data is scarce: random crops and colour jitter make policies more robust to camera changes. Residual connections come from ResNet (2015) and are in every transformer.</p>
+<p class="key"><span>Key point</span>Residual connections and normalisation make deep models trainable; regularisation makes them generalise.</p></section>
+
+        
+        <nav class="pager" aria-label="Guide pages"><a href="guide-things-i-know.html"><span>Previous</span>Things I know</a><a class="pnext" href="guide-transformer.html"><span>Next</span>The transformer</a></nav>
+      </article>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div>
+        <p class="foot-title">Get in touch</p>
+        <p>Interesting problems in robotics and machine learning, collaboration, or questions about past work.</p>
+      </div>
+      <div class="foot-links"><a href="mailto:matthew.wnuk@gmail.com">matthew.wnuk@gmail.com</a><a href="https://www.linkedin.com/in/matthewwnuk">LinkedIn</a><a href="https://github.com/wnukmat">GitHub</a><a href="https://huggingface.co/mwnuk">Hugging Face</a><a href="resume.html">Resume</a></div>
+    </div>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Evaluation: a guide to deep learning and robotics | Matthew Wnuk</title>
+  <meta name="description" content="How to tell whether a model, or a robot, is actually better.">
+  <link rel="canonical" href="https://www.matthewwnuk.com/guide-evaluation.html">
+  <meta property="og:site_name" content="Matthew Wnuk">
+  <meta property="og:title" content="Evaluation: a guide to deep learning and robotics | Matthew Wnuk">
+  <meta property="og:description" content="How to tell whether a model, or a robot, is actually better.">
+  <meta property="og:url" content="https://www.matthewwnuk.com/guide-evaluation.html">
+  <meta property="og:image" content="https://www.matthewwnuk.com/img/headshot.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="site-name" href="./"><img src="favicon.svg" alt="" width="28" height="28">Matthew Wnuk</a>
+      <nav aria-label="Main">
+        <a href="./#work">Work</a>
+        <a href="guide.html" aria-current="page">Guide</a>
+        <a href="./#experience">Experience</a>
+        <a href="resume.html">Resume</a>
+        <a href="about.html">About</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+
+    <header class="case-head guide-head">
+      <div class="wrap">
+        <a class="back" href="guide.html">&larr; All topics</a>
+        <p class="eyebrow">Guide &middot; Practice &middot; Topic 11 of 15</p>
+        <h1>Evaluation</h1>
+        <p class="dek">How to tell whether a model, or a robot, is actually better.</p>
+        <p class="gmeta"><span>2 minute read</span></p>
+      </div>
+    </header>
+    <div class="wrap note">
+      <aside class="toc card"><h2>In this note</h2><ol><li><a href="#counts">Four counts and the ratios built on them</a></li><li><a href="#trials">Count your trials</a></li><li><a href="#hides">What a single number hides</a></li><li><a href="#mistakes">Common mistakes</a></li></ol>
+        <h2>Key points</h2><ul class="keys"><li>Accuracy hides which kind of mistake the model makes; precision and recall show it.</li><li>Ten trials cannot tell 70% from 50%. Report the number of trials and an interval, not just a percentage.</li><li>Break results down before you believe them, and look at the failures yourself.</li></ul></aside>
+      <article class="note-body">
+<section class="note-sec"><h2 id="counts">Four counts and the ratios built on them</h2>
+<p>For any yes-or-no decision, four counts tell the whole story. Every named metric is a ratio of them.</p>
+<figure class="gfig card narrow"><img src="img/guide/g-confusion.jpg" width="1336" height="814" loading="lazy" alt="A two by two confusion matrix: true positive, false negative, false positive, true negative"><figcaption>Predictions against reality.</figcaption></figure>
+<ul><li><strong>Precision</strong> = TP / (TP + FP). When the model says yes, how often is it right?</li>
+<li><strong>Recall</strong> = TP / (TP + FN). Of the real positives, how many did it find?</li>
+<li><strong>Specificity</strong> = TN / (TN + FP). Of the real negatives, how many did it reject?</li>
+<li><strong>F1</strong> is the harmonic mean of precision and recall.</li></ul>
+<p>Accuracy hides which kind of mistake a model makes. A detector for a rare failure can be 99% accurate by always answering no, and its recall would be zero. These measures still matter in robotics for the components around a policy: grasp-success detectors, object detectors and anomaly monitors.</p></section>
+
+<section class="note-sec"><h2 id="trials">Count your trials</h2>
+<p>Robot evaluations are slow, so the number of trials is small, and small samples carry wide error bars.</p>
+<figure class="gfig card narrow"><img src="img/guide/g-trials.jpg" width="1396" height="814" loading="lazy" alt="Ranges for a 70 percent measured success rate at 10, 20, 50, 100 and 200 trials, narrowing as trials increase"><figcaption>The 95% interval around a measured success rate of 70% (Wilson score interval).</figcaption></figure>
+<div class="tablewrap"><table class="gtable num"><thead><tr><th>Trials</th><th>Successes</th><th>Measured</th><th>95% interval</th></tr></thead><tbody>
+<tr><td>10</td><td>7</td><td>70%</td><td>40% to 89%</td></tr><tr><td>20</td><td>14</td><td>70%</td><td>48% to 85%</td></tr><tr><td>50</td><td>35</td><td>70%</td><td>56% to 81%</td></tr><tr><td>100</td><td>70</td><td>70%</td><td>60% to 78%</td></tr><tr><td>200</td><td>140</td><td>70%</td><td>63% to 76%</td></tr></tbody></table></div>
+<p>Ten trials cannot tell 70% from 50%. Report the number of trials and an interval with every success rate. A fair test also needs a protocol written before the first run: the tasks, the object positions, and what counts as success. Every model should face the same positions, lighting and time limit, and where possible the operator should not know which model is running.</p></section>
+
+<section class="note-sec"><h2 id="hides">What a single number hides</h2>
+<p>An average over tasks can conceal exactly the failures that matter. Break results down along the ways a robot can be surprised: new object positions, new objects of a familiar kind, new scenes and lighting, and new wording of the instruction.</p>
+<ul><li><strong>Saturation.</strong> When every method scores above 95% on a benchmark, the differences between them are mostly noise.</li>
+<li><strong>Contamination.</strong> The test tasks may already be in the pretraining data.</li>
+<li><strong>Simulation only.</strong> A score in simulation may not carry over to hardware.</li></ul>
+<p>Then watch the failures. Label each one (perception, grasp, wrong object, timing, recovery), count the labels, and work on the largest group.</p></section>
+
+<section class="note-sec split2">
+<div><h2 id="mistakes">Common mistakes</h2><ul>
+<li><strong>A percentage with no count.</strong> &ldquo;80% success&rdquo; means little without the number of trials.</li>
+<li><strong>Unequal conditions.</strong> Comparing models tested on different days, positions or lighting.</li>
+<li><strong>Tuning on the test tasks.</strong> Each choice made against the test set leaks a little of it into the model.</li></ul></div>
+<div><h2 id="terms">Terms</h2><dl class="terms">
+<dt>Closed-loop evaluation</dt><dd>Running the policy so its actions affect what it sees next.</dd>
+<dt>Confidence interval</dt><dd>The range the true rate plausibly lies in, given the trials run.</dd>
+<dt>Calibration</dt><dd>Whether &ldquo;90% confident&rdquo; is right 90% of the time.</dd>
+<dt>Held-out</dt><dd>Data or tasks the model never saw in training.</dd></dl></div></section>
+
+        <section class="note-sec split2 more"><div><h2>In my work</h2><ul class="links"><li><a href="maritime-retrieval.html">Maritime retrieval: ranking metrics in practice</a></li></ul></div><div><h2>Further reading</h2><ul class="links"><li><a href="https://arxiv.org/abs/2306.03310">Liu et al., 2023. LIBERO: Benchmarking Knowledge Transfer for Lifelong Robot Learning.</a></li><li>Wilson, 1927. Probable Inference, the Law of Succession, and Statistical Inference. Journal of the American Statistical Association.</li></ul></div></section>
+        <nav class="pager" aria-label="Guide pages"><a href="guide-robot-data.html"><span>Previous</span>Data for robots</a><a class="pnext" href="guide-training-at-scale.html"><span>Next</span>Training at scale</a></nav>
+      </article>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div>
+        <p class="foot-title">Get in touch</p>
+        <p>Interesting problems in robotics and machine learning, collaboration, or questions about past work.</p>
+      </div>
+      <div class="foot-links"><a href="mailto:matthew.wnuk@gmail.com">matthew.wnuk@gmail.com</a><a href="https://www.linkedin.com/in/matthewwnuk">LinkedIn</a><a href="https://github.com/wnukmat">GitHub</a><a href="https://huggingface.co/mwnuk">Hugging Face</a><a href="resume.html">Resume</a></div>
+    </div>
+  </footer>
+</body>
+</html>

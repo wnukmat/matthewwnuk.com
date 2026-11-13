@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Robot policies today: a guide to deep learning and robotics | Matthew Wnuk</title>
+  <meta name="description" content="How a model that understands images and language is turned into one that moves a robot.">
+  <link rel="canonical" href="https://www.matthewwnuk.com/guide-robot-policies.html">
+  <meta property="og:site_name" content="Matthew Wnuk">
+  <meta property="og:title" content="Robot policies today: a guide to deep learning and robotics | Matthew Wnuk">
+  <meta property="og:description" content="How a model that understands images and language is turned into one that moves a robot.">
+  <meta property="og:url" content="https://www.matthewwnuk.com/guide-robot-policies.html">
+  <meta property="og:image" content="https://www.matthewwnuk.com/img/headshot.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="site-name" href="./"><img src="favicon.svg" alt="" width="28" height="28">Matthew Wnuk</a>
+      <nav aria-label="Main">
+        <a href="./#work">Work</a>
+        <a href="guide.html" aria-current="page">Guide</a>
+        <a href="./#experience">Experience</a>
+        <a href="resume.html">Resume</a>
+        <a href="about.html">About</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+
+    <header class="case-head guide-head">
+      <div class="wrap">
+        <a class="back" href="guide.html">&larr; All topics</a>
+        <p class="eyebrow">Guide &middot; Robots &middot; Topic 8 of 15</p>
+        <h1>Robot policies today</h1>
+        <p class="dek">How a model that understands images and language is turned into one that moves a robot.</p>
+        <p class="gmeta"><span>4 minute read</span></p>
+      </div>
+    </header>
+    <div class="wrap note">
+      <aside class="toc card"><h2>In this note</h2><ol><li><a href="#generate">Why actions are generated, not regressed</a></li><li><a href="#anatomy">Anatomy of a vision-language-action model</a></li><li><a href="#pi0">A real example: &pi;<sub>0</sub></a></li><li><a href="#outputs">Two ways to output actions</a></li><li><a href="#trends">Where the field is heading</a></li><li><a href="#mistakes">Common mistakes</a></li></ol>
+        <h2>Key points</h2><ul class="keys"><li>Generative action heads solved the &quot;average of two good answers is a bad answer&quot; problem.</li><li>A VLA inherits what the internet taught the VLM, and learns only the acting part from robot data.</li><li>Most of the parameters understand the scene; a small expert turns that understanding into motion.</li><li>Token outputs keep the model simple; continuous heads give speed and precision. Many current systems use both.</li><li>The direction of travel: one model, many robots, with slow thinking and fast acting separated.</li></ul></aside>
+      <article class="note-body">
+<section class="note-sec"><h2 id="generate">Why actions are generated, not regressed</h2>
+<p>The obvious way to train a policy is regression: show the model an observation and penalise the distance between its output and the demonstrated action. This fails for a simple reason. Demonstrations contain more than one good answer.</p>
+<figure class="gfig card narrow"><img src="img/guide/g-modes.jpg" width="1396" height="814" loading="lazy" alt="Two demonstrated paths pass an obstacle on either side; their average runs straight into it"><figcaption>Both demonstrations are fine. Their average is a collision.</figcaption></figure>
+<p>One person steers left around an obstacle and another steers right. A model trained with mean squared error learns the average of the two, which goes straight through the obstacle. The fix is to treat action prediction as generation: start from random noise and refine it into one consistent chunk of future actions, conditioned on recent camera images and the robot&rsquo;s state. Diffusion Policy showed in 2023 that this gives large gains on manipulation tasks. Most recent systems use flow matching for the same job because it needs fewer refinement steps. The note on <a href="guide-generative-modeling.html">generative modeling</a> explains both.</p></section>
+
+<section class="note-sec"><h2 id="anatomy">Anatomy of a vision-language-action model</h2>
+<p>A vision-language-action model, or VLA, is a vision-language model that has been taught to output robot actions.</p>
+<figure class="gfig card "><img src="img/guide/g-vla.jpg" width="1500" height="553" loading="lazy" alt="Camera images, an instruction and robot state pass through encoders into a VLM backbone and then an action head that outputs an action chunk"><figcaption>Read left to right. Inputs become tokens, a pretrained backbone reads them together, and an action head turns the result into motion.</figcaption></figure>
+<p>Camera images go through one or two vision encoders. The instruction is tokenised as text. The robot&rsquo;s own state is projected into a token. All of these enter a pretrained language-model backbone, which reads them together. An action head then turns the backbone&rsquo;s output into a short sequence of future actions, called a chunk.</p>
+<p>The division of labour matters. The vision encoder and backbone arrive already trained on web-scale images and text, so they know what a cup is and what &ldquo;on the shelf&rdquo; means. Robot data only has to teach the acting part: the state projector, the action head, and usually a fine-tune of the backbone.</p></section>
+
+<section class="note-sec"><h2 id="pi0">A real example: &pi;<sub>0</sub></h2>
+<figure class="gfig card "><img src="img/guide/pi0_architecture.jpg" width="1500" height="726" loading="lazy" alt="The pi-zero architecture: a PaliGemma vision-language model and a smaller action expert sharing one attention stream"><figcaption>Two transformers sharing one attention stream. Figure from my &pi;<sub>0</sub> video.</figcaption></figure>
+<p>&pi;<sub>0</sub>, published by Physical Intelligence in 2024, follows this pattern closely. The backbone is PaliGemma, a vision-language model of about 3 billion parameters built from the SigLIP vision encoder and the Gemma language model. Beside it sits a separate transformer of about 300 million parameters, the action expert, whose tokens attend to everything the backbone computed.</p>
+<p>The action expert is trained with flow matching and produces a chunk of 50 continuous actions in about ten refinement steps. At 50 Hz that chunk is one second of motion. Most of the parameters are spent on understanding the scene; a small expert turns that understanding into movement.</p></section>
+
+<section class="note-sec"><h2 id="outputs">Two ways to output actions</h2>
+<figure class="gfig card "><img src="img/guide/action_tokens.jpg" width="1500" height="236" loading="lazy" alt="A histogram over action bins, with the arithmetic 50 timesteps times 14 dimensions equals 700 tokens"><figcaption>Actions as tokens: every value becomes a choice among bins. One second of motion for a two-arm robot is 700 tokens.</figcaption></figure>
+<div class="tablewrap"><table class="gtable"><thead><tr><th></th><th>Discrete action tokens</th><th>Continuous action head</th></tr></thead><tbody>
+<tr><th>How</th><td>Sort each action value into a bin and predict the bins like words</td><td>A small network refines a whole chunk from noise, reading the backbone&rsquo;s features</td></tr>
+<tr><th>Strengths</th><td>No new architecture; works with any language model; trains stably</td><td>Smooth and precise; a few steps yield many actions</td></tr>
+<tr><th>Costs</th><td>One token per value is slow; bins limit precision</td><td>An extra module and loss; it must not degrade the backbone</td></tr></tbody></table></div>
+<p>Neither has won outright. Newer tokenisers compress a whole chunk into far fewer tokens, and several systems train with tokens but act with a continuous head.</p></section>
+
+<section class="note-sec"><h2 id="trends">Where the field is heading</h2>
+<ul><li><strong>Dual-system designs.</strong> A large, slow model understands the scene a few times a second while a small, fast model produces actions at control rate.</li>
+<li><strong>Embodied reasoning.</strong> Before acting, the model states the sub-task, the objects involved and where they are. This helps on long tasks and makes failures easier to explain.</li>
+<li><strong>Cross-embodiment training.</strong> One model is trained on data from many different robots, so a new robot needs less data of its own.</li></ul></section>
+
+<section class="note-sec split2">
+<div><h2 id="mistakes">Common mistakes</h2><ul>
+<li><strong>Mixing action spaces.</strong> A dataset recorded as absolute joint positions fed to a policy that expects relative hand motion will not crash. The robot will simply move wrongly.</li>
+<li><strong>Trusting offline error.</strong> A policy with a low action error on held-out data can still fail when its own actions change what it sees next.</li>
+<li><strong>Adding refinement steps.</strong> More steps cost latency, and a late action is a wrong action.</li></ul></div>
+<div><h2 id="terms">Terms</h2><dl class="terms">
+<dt>Policy</dt><dd>The function from what the robot senses to what it does.</dd>
+<dt>Action chunk</dt><dd>A short sequence of future actions produced in one call.</dd>
+<dt>Action head</dt><dd>The part of the model that outputs actions.</dd>
+<dt>VLA</dt><dd>A vision-language model trained to output robot actions.</dd></dl></div></section>
+
+        <section class="note-sec split2 more"><div><h2>In my work</h2><ul class="links"><li><a href="world-action-models.html">World-action models for robot control</a></li></ul></div><div><h2>Further reading</h2><ul class="links"><li><a href="https://arxiv.org/abs/2303.04137">Chi et al., 2023. Diffusion Policy: Visuomotor Policy Learning via Action Diffusion.</a></li><li><a href="https://arxiv.org/abs/2307.15818">Brohan et al., 2023. RT-2: Vision-Language-Action Models Transfer Web Knowledge to Robotic Control.</a></li><li><a href="https://arxiv.org/abs/2406.09246">Kim et al., 2024. OpenVLA: An Open-Source Vision-Language-Action Model.</a></li><li><a href="https://arxiv.org/abs/2410.24164">Black et al., 2024. &pi;<sub>0</sub>: A Vision-Language-Action Flow Model for General Robot Control.</a></li><li><a href="https://arxiv.org/abs/2310.08864">Open X-Embodiment Collaboration, 2023. Robotic Learning Datasets and RT-X Models.</a></li></ul></div></section>
+        <nav class="pager" aria-label="Guide pages"><a href="guide-robot-learning-basics.html"><span>Previous</span>Robot learning basics</a><a class="pnext" href="guide-world-models.html"><span>Next</span>World models</a></nav>
+      </article>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div>
+        <p class="foot-title">Get in touch</p>
+        <p>Interesting problems in robotics and machine learning, collaboration, or questions about past work.</p>
+      </div>
+      <div class="foot-links"><a href="mailto:matthew.wnuk@gmail.com">matthew.wnuk@gmail.com</a><a href="https://www.linkedin.com/in/matthewwnuk">LinkedIn</a><a href="https://github.com/wnukmat">GitHub</a><a href="https://huggingface.co/mwnuk">Hugging Face</a><a href="resume.html">Resume</a></div>
+    </div>
+  </footer>
+</body>
+</html>

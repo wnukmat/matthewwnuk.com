@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Data for robots: a guide to deep learning and robotics | Matthew Wnuk</title>
+  <meta name="description" content="Where robot training data comes from, and why quality matters more than volume.">
+  <link rel="canonical" href="https://www.matthewwnuk.com/guide-robot-data.html">
+  <meta property="og:site_name" content="Matthew Wnuk">
+  <meta property="og:title" content="Data for robots: a guide to deep learning and robotics | Matthew Wnuk">
+  <meta property="og:description" content="Where robot training data comes from, and why quality matters more than volume.">
+  <meta property="og:url" content="https://www.matthewwnuk.com/guide-robot-data.html">
+  <meta property="og:image" content="https://www.matthewwnuk.com/img/headshot.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="site-name" href="./"><img src="favicon.svg" alt="" width="28" height="28">Matthew Wnuk</a>
+      <nav aria-label="Main">
+        <a href="./#work">Work</a>
+        <a href="guide.html" aria-current="page">Guide</a>
+        <a href="./#experience">Experience</a>
+        <a href="resume.html">Resume</a>
+        <a href="about.html">About</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+
+    <header class="case-head guide-head">
+      <div class="wrap">
+        <a class="back" href="guide.html">&larr; All topics</a>
+        <p class="eyebrow">Guide &middot; Robots &middot; Topic 10 of 15</p>
+        <h1>Data for robots</h1>
+        <p class="dek">Where robot training data comes from, and why quality matters more than volume.</p>
+        <p class="gmeta"><span>2 minute read</span></p>
+      </div>
+    </header>
+    <div class="wrap note">
+      <aside class="toc card"><h2>In this note</h2><ol><li><a href="#s37">The data pyramid: plentiful at the bottom, relevant at the top</a></li><li><a href="#s38">Collecting demonstrations and the datasets you will meet</a></li><li><a href="#s39">Simulation, the reality gap and data quality</a></li></ol>
+        <h2>Key points</h2><ul class="keys"><li>Use the cheap layers to learn about the world, and the expensive layer to learn how to act.</li><li>Know your dataset&#x27;s cameras, action space and control rate before you train on it.</li><li>More data only helps if it is good data: consistent, varied and correctly labelled.</li></ul></aside>
+      <article class="note-body">
+<section class="note-sec"><h2 id="s37">The data pyramid: plentiful at the bottom, relevant at the top</h2>
+<p class="lede">Robotics has no internet-scale dataset of robot actions, so models are built from layers of different data.</p>
+<figure class="gfig card slide"><img src="img/guide/s37.jpg" width="1500" height="586" loading="lazy" alt="The data pyramid: plentiful at the bottom, relevant at the top"></figure>
+<p>This framing is common in the field. Language models had the web; robots do not have an equivalent record of actions. Every current system is an answer to the question of how to combine these layers. Quantities are orders of magnitude only.</p>
+<p class="key"><span>Key point</span>Use the cheap layers to learn about the world, and the expensive layer to learn how to act.</p></section>
+
+<section class="note-sec"><h2 id="s38">Collecting demonstrations and the datasets you will meet</h2>
+<p class="lede">How robot data is gathered, and the public collections and formats that have become standard.</p>
+<figure class="gfig card slide"><img src="img/guide/s38.jpg" width="1500" height="586" loading="lazy" alt="Collecting demonstrations and the datasets you will meet"></figure>
+<p>Leader-follower setups such as ALOHA made bimanual data collection cheap and popular. Handheld devices like UMI let people collect manipulation data in the wild. On formats: the practical lesson is that half of the effort on a robot learning project is data plumbing, and most bugs live there.</p>
+<p class="key"><span>Key point</span>Know your dataset&#x27;s cameras, action space and control rate before you train on it.</p></section>
+
+<section class="note-sec"><h2 id="s39">Simulation, the reality gap and data quality</h2>
+<p class="lede">Simulated data is cheap and perfectly labelled, but a policy trained only in simulation often fails on the real robot.</p>
+<figure class="gfig card slide"><img src="img/guide/s39.jpg" width="1500" height="586" loading="lazy" alt="Simulation, the reality gap and data quality"></figure>
+<p>Sim-to-real is the problem of transferring from simulation to hardware. Domain randomisation varies textures, lighting, masses and friction during training so the real world looks like just another variation. It works well for locomotion and less well for contact-rich manipulation. Data quality: slow, hesitant or failed demonstrations teach the policy to be slow, hesitant and to fail.</p>
+<p class="key"><span>Key point</span>More data only helps if it is good data: consistent, varied and correctly labelled.</p></section>
+
+        
+        <nav class="pager" aria-label="Guide pages"><a href="guide-world-models.html"><span>Previous</span>World models</a><a class="pnext" href="guide-evaluation.html"><span>Next</span>Evaluation</a></nav>
+      </article>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div>
+        <p class="foot-title">Get in touch</p>
+        <p>Interesting problems in robotics and machine learning, collaboration, or questions about past work.</p>
+      </div>
+      <div class="foot-links"><a href="mailto:matthew.wnuk@gmail.com">matthew.wnuk@gmail.com</a><a href="https://www.linkedin.com/in/matthewwnuk">LinkedIn</a><a href="https://github.com/wnukmat">GitHub</a><a href="https://huggingface.co/mwnuk">Hugging Face</a><a href="resume.html">Resume</a></div>
+    </div>
+  </footer>
+</body>
+</html>

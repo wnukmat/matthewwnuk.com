@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Embodiments: a guide to deep learning and robotics | Matthew Wnuk</title>
+  <meta name="description" content="The bodies and sensors a policy actually controls.">
+  <link rel="canonical" href="https://www.matthewwnuk.com/guide-embodiments.html">
+  <meta property="og:site_name" content="Matthew Wnuk">
+  <meta property="og:title" content="Embodiments: a guide to deep learning and robotics | Matthew Wnuk">
+  <meta property="og:description" content="The bodies and sensors a policy actually controls.">
+  <meta property="og:url" content="https://www.matthewwnuk.com/guide-embodiments.html">
+  <meta property="og:image" content="https://www.matthewwnuk.com/img/headshot.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="site-name" href="./"><img src="favicon.svg" alt="" width="28" height="28">Matthew Wnuk</a>
+      <nav aria-label="Main">
+        <a href="./#work">Work</a>
+        <a href="guide.html" aria-current="page">Guide</a>
+        <a href="./#experience">Experience</a>
+        <a href="resume.html">Resume</a>
+        <a href="about.html">About</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+
+    <header class="case-head guide-head">
+      <div class="wrap">
+        <a class="back" href="guide.html">&larr; All topics</a>
+        <p class="eyebrow">Guide &middot; Practice &middot; Topic 15 of 15</p>
+        <h1>Embodiments</h1>
+        <p class="dek">The bodies and sensors a policy actually controls.</p>
+        <p class="gmeta"><span>2 minute read</span></p>
+      </div>
+    </header>
+    <div class="wrap note">
+      <aside class="toc card"><h2>In this note</h2><ol><li><a href="#s50">Four robots you will meet</a></li><li><a href="#s51">The bodies: what robot are we actually controlling?</a></li><li><a href="#s52">Sensing: what the robot knows about the world and itself</a></li></ol>
+        <h2>Key points</h2><ul class="keys"><li>Different bodies, same recipe: cameras in, action chunks out.</li><li>The body decides the action space, the data you can collect and what can go wrong.</li><li>If a human teleoperator could not do the task with the robot&#x27;s sensors, the policy cannot either.</li></ul></aside>
+      <article class="note-body">
+<section class="note-sec"><h2 id="s50">Four robots you will meet</h2>
+<p class="lede">The methods in this deck run on machines like these.</p>
+<figure class="gfig card slide"><img src="img/guide/s50.jpg" width="1500" height="586" loading="lazy" alt="Four robots you will meet"></figure>
+<p>The G1 is a compact humanoid that many labs now use. The Franka arm is the most common research manipulator and is the arm simulated in the LIBERO benchmark used for figures in this deck. Flexiv and NEURA build arms designed for force-sensitive and collaborative work. Photo credits are on the last slide.</p>
+<p class="key"><span>Key point</span>Different bodies, same recipe: cameras in, action chunks out.</p></section>
+
+<section class="note-sec"><h2 id="s51">The bodies: what robot are we actually controlling?</h2>
+<p class="lede">The same learning methods run on very different machines; each body sets different constraints.</p>
+<figure class="gfig card slide"><img src="img/guide/s51.jpg" width="1500" height="586" loading="lazy" alt="The bodies: what robot are we actually controlling?"></figure>
+<p>Degrees of freedom are typical ranges and vary by model. Examples to mention: seven-axis collaborative arms such as the Franka research arm; humanoids such as the Unitree G1 and H1. A practical point: most public manipulation data is from single arms with parallel grippers, so that is where policies are strongest today.</p>
+<p class="key"><span>Key point</span>The body decides the action space, the data you can collect and what can go wrong.</p></section>
+
+<section class="note-sec"><h2 id="s52">Sensing: what the robot knows about the world and itself</h2>
+<p class="lede">A policy can only use what its sensors provide; choosing and placing sensors is part of the design.</p>
+<figure class="gfig card slide"><img src="img/guide/s52.jpg" width="1500" height="586" loading="lazy" alt="Sensing: what the robot knows about the world and itself"></figure>
+<p>The takeaway line is a useful test: sit a person at the teleoperation station with only the robot&#x27;s camera views. If they cannot do the task, the sensors are insufficient. Touch is under-used today mostly because tactile data is scarce and sensors vary, not because it is unimportant.</p>
+<p class="key"><span>Key point</span>If a human teleoperator could not do the task with the robot&#x27;s sensors, the policy cannot either.</p></section>
+
+        
+        <nav class="pager" aria-label="Guide pages"><a href="guide-understanding-and-safety.html"><span>Previous</span>Understanding and safety</a><span></span></nav>
+      </article>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div>
+        <p class="foot-title">Get in touch</p>
+        <p>Interesting problems in robotics and machine learning, collaboration, or questions about past work.</p>
+      </div>
+      <div class="foot-links"><a href="mailto:matthew.wnuk@gmail.com">matthew.wnuk@gmail.com</a><a href="https://www.linkedin.com/in/matthewwnuk">LinkedIn</a><a href="https://github.com/wnukmat">GitHub</a><a href="https://huggingface.co/mwnuk">Hugging Face</a><a href="resume.html">Resume</a></div>
+    </div>
+  </footer>
+</body>
+</html>
