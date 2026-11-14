@@ -303,6 +303,15 @@ h3 { font-size: 1.14rem; font-weight: 700; }
 .pager a span { display: block; color: var(--muted); font: 700 0.75rem/1.6 var(--sans); letter-spacing: 0.08em; text-transform: uppercase; }
 .pager .pnext { text-align: right; }
 .gintro { max-width: 66ch; margin-bottom: 24px; }
+.note-sec .runit { margin: 26px 0 0; }
+.runit .rn { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 18px; margin: 0; }
+.runit { margin: 0 0 30px; padding: 16px 20px; border-left: 4px solid var(--accent); }
+.runit h2 { margin: 0 0 4px; font: 700 0.78rem/1.2 var(--sans); letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent-ink); }
+.runit p { margin: 0 0 10px; color: var(--muted); font-size: 0.95rem; }
+.runit ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.runit li { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 18px; margin: 0; }
+.runit .rt { color: var(--ink); font-weight: 600; }
+.runit .rl { display: flex; gap: 16px; font-size: 0.92rem; white-space: nowrap; }
 .eq { margin: 16px 0; padding: 10px 14px; border-radius: 8px; background: var(--soft); overflow-x: auto; overflow-y: hidden; }
 .eq .katex-display { margin: 0; }
 .katex { font-size: 1.06em; }
