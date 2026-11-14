@@ -38,10 +38,10 @@
     <header class="case-head guide-head">
       <div class="wrap">
         <a class="back" href="guide.html">&larr; All topics</a>
-        <p class="eyebrow">Guide &middot; Practice &middot; Topic 15 of 15</p>
+        <p class="eyebrow">Guide &middot; Practice &middot; Topic 31 of 31</p>
         <h1>Embodiments</h1>
         <p class="dek">The bodies and sensors a policy actually controls.</p>
-        <p class="gmeta"><span>3 minute read</span></p>
+        <p class="gmeta"><span>3 minute read</span><span class="assumes">Builds on: <a href="guide-robotics-fundamentals.html">Robotics fundamentals</a></span></p>
       </div>
     </header>
     <div class="wrap note">
@@ -52,10 +52,10 @@
 
 <p>The methods in this guide run on machines like these. The bodies differ, and the recipe is the same: cameras in, action chunks out.</p>
 <div class="figrow">
-<figure class="gfig card photo"><img src="img/guide/robot_g1.jpg" width="800" height="1000" loading="lazy" alt="A Unitree G1 humanoid robot standing in an exhibition hall"><figcaption><strong>Unitree G1.</strong> A compact humanoid: whole-body control, two arms and hands.</figcaption></figure>
-<figure class="gfig card photo"><img src="img/guide/robot_franka.jpg" width="800" height="1000" loading="lazy" alt="A white Franka robot arm at a workbench"><figcaption><strong>Franka research arm.</strong> Seven joints with torque sensing. The standard lab arm, and the arm simulated in LIBERO.</figcaption></figure>
-<figure class="gfig card photo"><img src="img/guide/robot_flexiv.jpg" width="800" height="1000" loading="lazy" alt="A Flexiv Rizon robot arm polishing a surface while a person stands beside it"><figcaption><strong>Flexiv Rizon.</strong> A seven-joint arm built around force control.</figcaption></figure>
-<figure class="gfig card photo"><img src="img/guide/robot_maira.jpg" width="800" height="1000" loading="lazy" alt="A NEURA MAiRA robot arm lit in purple against a dark background"><figcaption><strong>NEURA MAiRA.</strong> A collaborative arm with built-in sensing, for work beside people.</figcaption></figure>
+<figure class="gfig card photo"><a class="zoom" href="img/guide/robot_g1.jpg"><img src="img/guide/robot_g1.jpg" width="800" height="1000" loading="lazy" alt="A Unitree G1 humanoid robot standing in an exhibition hall"></a><figcaption><strong>Unitree G1.</strong> A compact humanoid: whole-body control, two arms and hands.</figcaption></figure>
+<figure class="gfig card photo"><a class="zoom" href="img/guide/robot_franka.jpg"><img src="img/guide/robot_franka.jpg" width="800" height="1000" loading="lazy" alt="A white Franka robot arm at a workbench"></a><figcaption><strong>Franka research arm.</strong> Seven joints with torque sensing. The standard lab arm, and the arm simulated in LIBERO.</figcaption></figure>
+<figure class="gfig card photo"><a class="zoom" href="img/guide/robot_flexiv.jpg"><img src="img/guide/robot_flexiv.jpg" width="800" height="1000" loading="lazy" alt="A Flexiv Rizon robot arm polishing a surface while a person stands beside it"></a><figcaption><strong>Flexiv Rizon.</strong> A seven-joint arm built around force control.</figcaption></figure>
+<figure class="gfig card photo"><a class="zoom" href="img/guide/robot_maira.jpg"><img src="img/guide/robot_maira.jpg" width="800" height="1000" loading="lazy" alt="A NEURA MAiRA robot arm lit in purple against a dark background"></a><figcaption><strong>NEURA MAiRA.</strong> A collaborative arm with built-in sensing, for work beside people.</figcaption></figure>
 </div></section>
 
 <section class="note-sec"><h2 id="bodies">What the body decides</h2>
@@ -66,8 +66,8 @@
 
 <p>A policy can only use what its sensors provide, so choosing and placing sensors is part of the design.</p>
 <div class="figrow two">
-<figure class="gfig card photo"><img src="img/guide/cam_scene.jpg" width="768" height="768" loading="lazy" alt="A scene camera view of a robot arm above a table with mugs and plates"><figcaption>Scene camera: the wider context.</figcaption></figure>
-<figure class="gfig card photo"><img src="img/guide/cam_wrist.jpg" width="768" height="768" loading="lazy" alt="A wrist camera view looking down at a mug from just above the gripper"><figcaption>Wrist camera: a close-up of the grasp.</figcaption></figure>
+<figure class="gfig card photo"><a class="zoom" href="img/guide/cam_scene.jpg"><img src="img/guide/cam_scene.jpg" width="768" height="768" loading="lazy" alt="A scene camera view of a robot arm above a table with mugs and plates"></a><figcaption>Scene camera: the wider context.</figcaption></figure>
+<figure class="gfig card photo"><a class="zoom" href="img/guide/cam_wrist.jpg"><img src="img/guide/cam_wrist.jpg" width="768" height="768" loading="lazy" alt="A wrist camera view looking down at a mug from just above the gripper"></a><figcaption>Wrist camera: a close-up of the grasp.</figcaption></figure>
 </div><ul><li><strong>RGB cameras</strong> are the main input for learned policies. Scene cameras give context, and wrist cameras give a close-up of the grasp and a large gain in precision. Their placement must match the training data.</li><li><strong>Depth,</strong> from stereo, structured light or lidar, gives geometry directly but is noisy on shiny and transparent objects. Many policies skip it and learn depth from RGB.</li><li><strong>Proprioception,</strong> meaning joint positions, velocities and torques, is always available and precise. Policies can lean on it too much and ignore the cameras.</li><li><strong>Touch and force.</strong> Force-torque sensors measure contact at the wrist, and tactile sensors measure pressure and slip at the fingertips. They are essential for insertion, fragile objects and anything hidden by the hand.</li></ul><p>A useful test: sit a person at the teleoperation station with only the robot&rsquo;s camera views. If they cannot do the task, the policy cannot either.</p></section>
 
 <section class="note-sec split2">

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Stable Diffusion and latent diffusion: a guide to deep learning and robotics | Matthew Wnuk</title>
+  <meta name="description" content="One real image generator taken apart: the autoencoder, the text encoder, the denoiser, guidance and steps, and why robotics builds on it.">
+  <link rel="canonical" href="https://www.matthewwnuk.com/guide-stable-diffusion.html">
+  <meta property="og:site_name" content="Matthew Wnuk">
+  <meta property="og:title" content="Stable Diffusion and latent diffusion: a guide to deep learning and robotics | Matthew Wnuk">
+  <meta property="og:description" content="One real image generator taken apart: the autoencoder, the text encoder, the denoiser, guidance and steps, and why robotics builds on it.">
+  <meta property="og:url" content="https://www.matthewwnuk.com/guide-stable-diffusion.html">
+  <meta property="og:image" content="https://www.matthewwnuk.com/img/headshot.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="site-name" href="./"><img src="favicon.svg" alt="" width="28" height="28">Matthew Wnuk</a>
+      <nav aria-label="Main">
+        <a href="./#work">Work</a>
+        <a href="guide.html" aria-current="page">Guide</a>
+        <a href="./#experience">Experience</a>
+        <a href="resume.html">Resume</a>
+        <a href="about.html">About</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+
+    <header class="case-head guide-head">
+      <div class="wrap">
+        <a class="back" href="guide.html">&larr; All topics</a>
+        <p class="eyebrow">Guide &middot; Models &middot; Topic 10 of 31</p>
+        <h1>Stable Diffusion and latent diffusion</h1>
+        <p class="dek">One real image generator taken apart: the autoencoder, the text encoder, the denoiser, guidance and steps, and why robotics builds on it.</p>
+        <p class="gmeta"><span>6 minute read</span><span class="assumes">Builds on: <a href="guide-generative-modeling.html">Generative modeling</a>, <a href="guide-attention.html">Attention in depth</a></span></p>
+      </div>
+    </header>
+    <div class="wrap note">
+      <aside class="toc card"><h2>In this note</h2><ol><li><a href="#what">The other backbone</a></li><li><a href="#parts">Three parts</a></li><li><a href="#latent">Why it works in a latent</a></li><li><a href="#denoise">Generation, one step at a time</a></li><li><a href="#text">How the prompt gets in</a></li><li><a href="#steps">Steps, time and quality</a></li><li><a href="#family">What changed since</a></li><li><a href="#robots">Why robotics builds on it</a></li><li><a href="#mistakes">Common mistakes</a></li></ol>
+        <h2>Key points</h2><ul class="keys"><li>Latent diffusion is an autoencoder, a text encoder and a denoiser. Only the denoiser generates.</li><li>The autoencoder sets what can be represented; the step count sets the speed.</li><li>Robotics uses it as a world model, as a policy backbone and as a training recipe for actions.</li></ul></aside>
+      <article class="note-body">
+<section class="note-sec"><h2 id="what">The other backbone</h2>
+
+<p>Vision-language models understand images. <strong>Diffusion models</strong> produce them. Stable Diffusion, released in 2022, is the model that made image generation fast and open enough for everyone to build on, and its design, called <strong>latent diffusion</strong>, is the template for the image and video generators that robotics now uses as its second backbone.</p>
+<p>The <a href="guide-generative-modeling.html">generative modeling</a> note explains how diffusion works in principle. This note takes one real model apart. Every image below was produced by running Stable Diffusion 1.5 for this note.</p></section>
+
+<section class="note-sec"><h2 id="parts">Three parts</h2>
+
+<figure class="gfig card "><a class="zoom" href="img/guide/sd_arch.png"><img src="img/guide/sd_arch.png" width="1500" height="734" loading="lazy" alt="A text prompt goes into a text encoder of 123 million parameters, which passes 77 text tokens to a denoiser of 860 million parameters. Random noise of size 4 by 64 by 64 also enters the denoiser, which runs 4 to 50 times with its output fed back in. The clean latent then goes to a decoder, an autoencoder of 84 million parameters, which outputs a 512 by 512 image."></a><figcaption>Stable Diffusion 1.5. The parameter counts were read from the model itself.</figcaption></figure><ul><li><strong>An autoencoder</strong> that compresses an image into a small grid of numbers, the <strong>latent</strong>, and rebuilds an image from one. It is trained first and then frozen.</li><li><strong>A text encoder</strong> that turns the prompt into a sequence of vectors. It is the text half of a CLIP model, also frozen.</li><li><strong>A denoiser</strong> that takes a noisy latent, the text vectors and the current noise level, and predicts the noise. It holds most of the parameters and is the only part trained for generation.</li></ul><p>Generation runs the denoiser repeatedly on a latent that starts as pure noise, and decodes once at the end.</p></section>
+
+<section class="note-sec"><h2 id="latent">Why it works in a latent</h2>
+
+<figure class="gfig card "><a class="zoom" href="img/guide/sd_latent.jpg"><img src="img/guide/sd_latent.jpg" width="1500" height="371" loading="lazy" alt="A 512 by 512 robot camera frame beside the four channels of its latent, each 64 by 64. The channels are coarse, noisy-looking versions of the image in which the mugs, plates and robot can still be made out."></a><figcaption>A real robot camera frame and the four channels of its latent. The layout of the scene survives. 786,432 numbers have become 16,384.</figcaption></figure>
+<p>The autoencoder shrinks each side of the image by eight and keeps four channels, a reduction of 48 times in the amount of data. The denoiser therefore works on a 64 × 64 grid instead of 512 × 512, and that is the whole reason the model can run on an ordinary graphics card.</p>
+<figure class="gfig card "><a class="zoom" href="img/guide/sd_vae.jpg"><img src="img/guide/sd_vae.jpg" width="1500" height="445" loading="lazy" alt="A robot camera frame, the same frame after passing through the autoencoder, and close-ups of the gripper from each. The rebuilt frame looks the same at full size. In the close-up, edges and fine markings on the gripper are slightly softened."></a><figcaption>The same frame encoded and decoded with no diffusion involved. At full size the two match. Close up, fine edges on the gripper are slightly softened.</figcaption></figure>
+<p>The compression has a price, and this round trip shows it. The rebuilt frame scores 35.3 dB against the original, which is good, and the loss is concentrated in exactly the small, sharp detail a robot cares about: edges of fingers, thin parts, small text. Whatever the autoencoder cannot rebuild, the generator can never produce. Before building on any latent model, encode and decode real images from the target domain and look closely.</p></section>
+
+<section class="note-sec"><h2 id="denoise">Generation, one step at a time</h2>
+
+<figure class="gfig card "><a class="zoom" href="img/guide/sd_traj.jpg"><img src="img/guide/sd_traj.jpg" width="1500" height="324" loading="lazy" alt="Six images decoded from the latent at steps 1, 5, 10, 15, 20 and 25 of a 25-step generation. The first two are pure noise. At step 10 a rough shape appears. By step 20 a robot holding a mug is clear, and step 25 is clean."></a><figcaption>One generation, decoded at six points along the way. The prompt was “a robot arm picking up a white mug from a wooden table, photograph”. Layout is settled in the middle steps and detail in the last ones.</figcaption></figure>
+<p>The latent starts as random numbers. At each step the denoiser estimates the noise present, and a small rule called the <strong>sampler</strong> removes part of it. Early steps decide the composition: where things are and roughly what they are. Late steps add texture and sharp edges. This is worth knowing because it tells you where a change will take effect. Changing the prompt late alters detail and leaves the layout alone.</p>
+<p>The result is also a lesson in what the model knows. The prompt asked for a robot arm. The model drew a friendly humanoid, because that is what “robot” looks like in the images it learned from.</p></section>
+
+<section class="note-sec"><h2 id="text">How the prompt gets in</h2>
+
+<p>The prompt is encoded once into 77 token vectors. Inside the denoiser, <a href="guide-attention.html">cross-attention</a> layers let every position of the image latent read those vectors, so each region can attend to the words that concern it. The image is the queries and the text is the keys and values.</p>
+<figure class="gfig card "><a class="zoom" href="img/guide/sd_cfg.jpg"><img src="img/guide/sd_cfg.jpg" width="1500" height="447" loading="lazy" alt="Four images from the same starting noise at guidance strengths 1, 3, 7.5 and 15. With guidance off the image is an incoherent tangle. At 3 it is a recognisable but muddled machine. At 7.5 it is a clean image of a robot holding a mug. At 15 it is simplified and oversaturated."></a><figcaption>The same starting noise at four guidance strengths. Too little and the prompt is barely followed. Too much and the image becomes simplified and harsh.</figcaption></figure>
+<p>Reading the prompt is not enough to make the model follow it closely. <strong>Classifier-free guidance</strong> supplies the rest. At each step the denoiser is run twice, once with the prompt and once with an empty prompt, and the result is pushed further in the direction that separates the two:</p>
+<p class="formula">prediction = unconditional + scale × ( conditional − unconditional )</p>
+<p>A scale of 1 is no guidance. Values around 5 to 8 are typical. It costs a second pass at every step, and it trades variety for obedience.</p></section>
+
+<section class="note-sec"><h2 id="steps">Steps, time and quality</h2>
+<figure class="gfig card "><a class="zoom" href="img/guide/sd_steps.jpg"><img src="img/guide/sd_steps.jpg" width="1500" height="447" loading="lazy" alt="Four images from the same starting noise using 4, 10, 25 and 50 steps, taking 0.15, 0.37, 0.91 and 1.83 seconds. At 4 steps the image is a blurred smear. At 10 it is a recognisable robot with errors. At 25 and 50 it is clean and nearly identical."></a><figcaption>The same starting noise with four step counts, timed on a desktop GPU. Time is proportional to steps. Quality stops improving well before 50.</figcaption></figure>
+<p>Each step is a full pass through the denoiser, twice with guidance, so time is proportional to steps: 0.15 seconds for 4 and 1.83 for 50 here. This model needs about 25. Four are not enough. Getting good results in very few steps takes a model trained for it, by distillation or with a flow-matching objective, and that is exactly the property a robot needs from a generator that runs inside a control loop.</p></section>
+
+<section class="note-sec"><h2 id="family">What changed since</h2>
+<div class="tablewrap"><table class="gtable "><thead><tr><th>Generation</th><th>Denoiser</th><th>Text encoder</th><th>Objective</th><th>What it added</th></tr></thead><tbody><tr><th>Stable Diffusion 1.x</th><td>Convolutional U-Net with attention</td><td>CLIP text encoder</td><td>Predict the noise</td><td>Latent diffusion, openly released</td></tr><tr><th>SDXL</th><td>A larger U-Net</td><td>Two CLIP text encoders</td><td>Predict the noise</td><td>Higher resolution and better composition</td></tr><tr><th>Diffusion transformers</th><td>A transformer over latent patches</td><td>Varies</td><td>Diffusion or flow</td><td>Scales like a language model; no convolutions in the denoiser</td></tr><tr><th>Stable Diffusion 3, FLUX</th><td>A transformer with joint text and image attention</td><td>CLIP plus a large language-model encoder</td><td>Flow matching</td><td>Better prompt following and rendered text; fewer steps</td></tr><tr><th>Video models</th><td>A transformer over space and time</td><td>A large language-model encoder</td><td>Mostly flow matching</td><td>An autoencoder that also compresses time</td></tr></tbody></table></div><p>Three trends run through the table. The denoiser moved from convolutions to transformers. The objective moved from noise prediction to flow matching. And the text encoder grew, because how well a model follows a prompt is limited by how well it reads it.</p></section>
+
+<section class="note-sec"><h2 id="robots">Why robotics builds on it</h2>
+
+<p>A model that can generate plausible images has learned a good deal about how the world looks and, for video, how it moves. Robotics uses that in four ways.</p><ul><li><strong>As a world model.</strong> A video generator conditioned on the robot’s actions predicts what the cameras will see next. The <a href="guide-world-models.html">world models</a> note covers this.</li><li><strong>As a policy backbone.</strong> World-action models start from a pretrained video generator and train it to produce actions together with future frames.</li><li><strong>As the method, not the model.</strong> Diffusion Policy and flow-matching action heads borrow the training recipe and apply it to action chunks, with no image generation involved.</li><li><strong>As a source of data.</strong> Image and video generators change backgrounds, lighting and objects in existing demonstrations.</li></ul>
+<p>The properties learned on this small model carry over directly. The autoencoder sets what can be represented, so fine contact detail is at risk. The number of steps sets whether it can run in real time. And the model’s idea of the world comes from its training images, which contained many pictures of robots and very few taken by one.</p></section>
+
+<section class="note-sec split2">
+<div><h2 id="mistakes">Common mistakes</h2><ul><li><strong>Skipping the autoencoder check.</strong> Encode and decode real frames from your domain before anything else.</li><li><strong>Raising guidance to fix everything.</strong> Past a point it damages the image without improving obedience.</li><li><strong>Assuming few steps will do.</strong> A model must be trained for few-step sampling. Otherwise quality falls off sharply.</li><li><strong>Reading generated video as physics.</strong> Plausible is not the same as correct.</li></ul></div>
+<div><h2 id="terms">Terms</h2><dl class="terms"><dt>Latent diffusion</dt><dd>Running the diffusion process in an autoencoder’s compressed space instead of on pixels.</dd><dt>Latent</dt><dd>The compressed representation of an image produced by the autoencoder.</dd><dt>Denoiser</dt><dd>The network that predicts the noise in a noisy latent.</dd><dt>Sampler</dt><dd>The rule that turns the denoiser’s prediction into the next, less noisy latent.</dd><dt>Classifier-free guidance</dt><dd>Exaggerating the difference between prompted and unprompted predictions to follow the prompt more closely.</dd><dt>Diffusion transformer</dt><dd>A denoiser built from transformer blocks over latent patches.</dd></dl></div></section>
+
+        <section class="note-sec split2 more"><div><h2>Further reading</h2><ul class="links"><li><a href="https://arxiv.org/abs/2112.10752">Rombach et al., 2021. High-Resolution Image Synthesis with Latent Diffusion Models.</a></li><li><a href="https://arxiv.org/abs/2006.11239">Ho et al., 2020. Denoising Diffusion Probabilistic Models.</a></li><li><a href="https://arxiv.org/abs/2010.02502">Song et al., 2020. Denoising Diffusion Implicit Models.</a></li><li><a href="https://arxiv.org/abs/2207.12598">Ho and Salimans, 2022. Classifier-Free Diffusion Guidance.</a></li><li><a href="https://arxiv.org/abs/2212.09748">Peebles and Xie, 2022. Scalable Diffusion Models with Transformers.</a></li><li><a href="https://arxiv.org/abs/2403.03206">Esser et al., 2024. Scaling Rectified Flow Transformers for High-Resolution Image Synthesis (Stable Diffusion 3).</a></li><li><a href="https://arxiv.org/abs/2311.15127">Blattmann et al., 2023. Stable Video Diffusion: Scaling Latent Video Diffusion Models to Large Datasets.</a></li><li><a href="https://arxiv.org/abs/2303.04137">Chi et al., 2023. Diffusion Policy: Visuomotor Policy Learning via Action Diffusion.</a></li></ul></div></section>
+        <nav class="pager" aria-label="Guide pages"><a href="guide-generative-modeling.html"><span>Previous</span>Generative modeling</a><a class="pnext" href="guide-foundation-models.html"><span>Next</span>Foundation models and adaptation</a></nav>
+      </article>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div>
+        <p class="foot-title">Get in touch</p>
+        <p>Interesting problems in robotics and machine learning, collaboration, or questions about past work.</p>
+      </div>
+      <div class="foot-links"><a href="mailto:matthew.wnuk@gmail.com">matthew.wnuk@gmail.com</a><a href="https://www.linkedin.com/in/matthewwnuk">LinkedIn</a><a href="https://github.com/wnukmat">GitHub</a><a href="https://huggingface.co/mwnuk">Hugging Face</a><a href="resume.html">Resume</a></div>
+    </div>
+  </footer>
+</body>
+</html>

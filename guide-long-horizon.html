@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Long-horizon tasks: a guide to deep learning and robotics | Matthew Wnuk</title>
+  <meta name="description" content="Action chunks, sub-task decomposition, chain of thought and memory: how robots get through tasks with many steps.">
+  <link rel="canonical" href="https://www.matthewwnuk.com/guide-long-horizon.html">
+  <meta property="og:site_name" content="Matthew Wnuk">
+  <meta property="og:title" content="Long-horizon tasks: a guide to deep learning and robotics | Matthew Wnuk">
+  <meta property="og:description" content="Action chunks, sub-task decomposition, chain of thought and memory: how robots get through tasks with many steps.">
+  <meta property="og:url" content="https://www.matthewwnuk.com/guide-long-horizon.html">
+  <meta property="og:image" content="https://www.matthewwnuk.com/img/headshot.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="site-name" href="./"><img src="favicon.svg" alt="" width="28" height="28">Matthew Wnuk</a>
+      <nav aria-label="Main">
+        <a href="./#work">Work</a>
+        <a href="guide.html" aria-current="page">Guide</a>
+        <a href="./#experience">Experience</a>
+        <a href="resume.html">Resume</a>
+        <a href="about.html">About</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+
+    <header class="case-head guide-head">
+      <div class="wrap">
+        <a class="back" href="guide.html">&larr; All topics</a>
+        <p class="eyebrow">Guide &middot; Robots &middot; Topic 18 of 31</p>
+        <h1>Long-horizon tasks</h1>
+        <p class="dek">Action chunks, sub-task decomposition, chain of thought and memory: how robots get through tasks with many steps.</p>
+        <p class="gmeta"><span>7 minute read</span><span class="assumes">Builds on: <a href="guide-robot-learning-basics.html">Robot learning basics</a>, <a href="guide-robot-policies.html">Robot policies today</a></span></p>
+      </div>
+    </header>
+    <div class="wrap note">
+      <aside class="toc card"><h2>In this note</h2><ol><li><a href="#why">Why long tasks are hard</a></li><li><a href="#levels">Levels of a task</a></li><li><a href="#chunks">Action chunks: fewer, larger decisions</a></li><li><a href="#subtasks">Sub-task decomposition</a></li><li><a href="#cot">Chain of thought: reasoning before acting</a></li><li><a href="#memory">Memory</a></li><li><a href="#together">How they fit together</a></li><li><a href="#mistakes">Common mistakes</a></li></ol>
+        <h2>Key points</h2><ul class="keys"><li>Success on a long task is the product of its steps: ten steps at 95% is 60%.</li><li>Chunks shorten the chain at the scale of seconds; sub-tasks at the scale of minutes.</li><li>Reasoning before acting makes each decision more reliable and each failure easier to read.</li></ul></aside>
+      <article class="note-body">
+<section class="note-sec"><h2 id="why">Why long tasks are hard</h2>
+
+<figure class="gfig card "><a class="zoom" href="img/guide/lh_compounding.png"><img src="img/guide/lh_compounding.png" width="1500" height="635" loading="lazy" alt="Whole-task success against the number of sub-tasks that must all succeed, for four per-step success rates. At 95 percent per step, ten steps give 60 percent overall and thirty give 21 percent. At 99 percent per step, thirty steps give 74 percent."></a><figcaption>Arithmetic, not an experiment: if every sub-task must succeed, the whole task succeeds with the product of their rates.</figcaption></figure>
+<p>A policy that succeeds at each step 95% of the time sounds reliable. Chain ten such steps and the task succeeds 60% of the time. Chain thirty and it is 21%. This arithmetic is the central fact about long tasks, and every method in this note attacks it from one of three sides: make each step more reliable, make fewer steps, or recover when a step fails.</p>
+<p>Two further problems come with length. The policy has to remember what it has already done, and it sees only the last frame or two. And the instruction no longer describes the next motion. “Clear the table” says nothing about which object to pick up first.</p></section>
+
+<section class="note-sec"><h2 id="levels">Levels of a task</h2>
+
+<figure class="gfig card "><a class="zoom" href="img/guide/lh_levels.png"><img src="img/guide/lh_levels.png" width="1500" height="791" loading="lazy" alt="Five rows on one time axis. A task lasting minutes. Sub-tasks of 5 to 30 seconds each. Motions of about a second each. Action chunks of half a second to two seconds. Individual actions of 20 to 100 milliseconds."></a><figcaption>One task at five levels. Each method in this note works at one of the boundaries between them.</figcaption></figure>
+<figure class="gfig card "><a class="zoom" href="img/guide/lh_segments.png"><img src="img/guide/lh_segments.png" width="1500" height="714" loading="lazy" alt="Hand position and gripper opening through a 21-second robot episode, divided into four shaded phases at the moments the gripper closes and opens: reach the first mug, carry it to the plate, reach the second mug, carry it to the plate."></a><figcaption>A real episode divided into sub-tasks using nothing but the gripper command. It closes at 4.0 s and 16.1 s and opens at 9.4 s and 20.7 s.</figcaption></figure>
+<p>The second figure is a real demonstration of the instruction “put the white mug on the left plate and put the yellow and white mug on the right plate”. The moments the gripper closes and opens split it cleanly into four sub-tasks. That is the simplest form of <strong>sub-task decomposition</strong>, and it is free: the boundaries are already in the data.</p></section>
+
+<section class="note-sec"><h2 id="chunks">Action chunks: fewer, larger decisions</h2>
+
+<p>The lowest boundary is between single actions and chunks. Predicting a block of future actions in one call shortens the chain directly. The episode above is 214 steps long.</p><div class="tablewrap"><table class="gtable num"><thead><tr><th>Actions per chunk</th><th>Decisions in the episode</th><th>Each chunk covers</th></tr></thead><tbody><tr><th>1</th><td>214</td><td>0.1 seconds</td></tr><tr><th>8</th><td>27</td><td>0.8 seconds</td></tr><tr><th>16</th><td>14</td><td>1.6 seconds</td></tr><tr><th>50</th><td>5</td><td>5 seconds</td></tr></tbody></table></div>
+<p>Fewer decisions mean fewer chances to drift, and a chunk produced in one pass is internally consistent, so motion is smooth. The price is reactivity: within a chunk the policy is not looking. Three refinements manage that trade.</p><ul><li><strong>Execute part, re-plan early.</strong> Predict 16 actions, execute 5, and predict again. The plan stays long and the reaction time stays short.</li><li><strong>Blend overlapping chunks.</strong> Average the predictions that several successive chunks make for the same moment, which smooths the joins.</li><li><strong>Plan around the delay.</strong> Generate the next chunk knowing which of the current actions will already have been executed by the time it arrives.</li></ul><p>Chunking solves the problem at the scale of seconds. It does nothing for a task of minutes, which needs the levels above.</p></section>
+
+<section class="note-sec"><h2 id="subtasks">Sub-task decomposition</h2>
+
+<p>The next boundary up splits a task into sub-tasks, each short enough for a chunking policy to complete reliably. A high-level model names the next sub-task in words, and a low-level policy carries it out. The interface between them is usually plain language, which makes the system’s decisions readable.</p><div class="tablewrap"><table class="gtable "><thead><tr><th>Where the sub-tasks come from</th><th>How it works</th><th>Trade-off</th></tr></thead><tbody><tr><th>Written by hand</th><td>A fixed script or state machine lists the steps</td><td>Reliable and inflexible; one script per task</td></tr><tr><th>A language model as planner</th><td>Given the instruction and the scene, a language model proposes the next step, often filtered by what the robot can currently do</td><td>Flexible; the planner can propose steps the robot cannot perform</td></tr><tr><th>A vision-language model trained for it</th><td>A model fine-tuned on robot data labelled with sub-tasks predicts the next one from the camera view</td><td>Grounded in what the robot sees; needs sub-task labels</td></tr><tr><th>Learned from the data’s structure</th><td>Boundaries are found automatically, from gripper events as above or from changes in the scene</td><td>Free labels; the segments may not match meaningful steps</td></tr></tbody></table></div>
+<p>Two details decide whether a hierarchy works. The high level has to know when a sub-task is finished, which needs a success check or a model that watches for completion. And the high level has to be able to re-plan when a sub-task fails, which is where the third weapon against compounding, recovery, comes in. A system that notices a dropped mug and issues “pick up the mug” again turns a failed chain into a longer successful one.</p></section>
+
+<section class="note-sec"><h2 id="cot">Chain of thought: reasoning before acting</h2>
+
+<figure class="gfig card "><a class="zoom" href="img/guide/lh_cot.png"><img src="img/guide/lh_cot.png" width="1500" height="715" loading="lazy" alt="Two pipelines. Direct: image and instruction go straight to actions. With reasoning: image and instruction are followed by four generated steps, the plan, the current sub-task, the location of the object as a box, and the motion in words, before the actions."></a><figcaption>The model writes its intermediate reasoning as tokens before the action. Each step conditions the ones after it.</figcaption></figure>
+<p>In language models, <strong>chain of thought</strong> means having the model write out intermediate steps before its answer. Accuracy improves on problems that need several steps, because each step is produced with the earlier ones in view.</p>
+<p>The embodied version asks a robot policy to do the same before each action: state the plan, name the current sub-task, locate the relevant object, describe the motion in words, and only then output the action. The published work on this reports clear gains in success on tasks that need generalisation, with a further benefit that is easy to overlook. When the robot fails, the reasoning shows where it went wrong: the wrong sub-task, the wrong object, or the right intention and a bad motion.</p><ul><li><strong>It needs labels.</strong> The reasoning steps must exist in the training data. They are usually generated automatically, with detectors and language models annotating existing demonstrations.</li><li><strong>It costs time.</strong> Every reasoning token is generated before the action. Systems reduce this by reasoning only every few steps, or by reusing the high-level parts of the reasoning until the sub-task changes.</li><li><strong>It can be visual.</strong> The intermediate step need not be text. Some models predict an image of the goal, or of the next few frames, and act toward that.</li><li><strong>It can be wrong.</strong> Fluent reasoning followed by an unrelated action is possible. Check that changing the reasoning changes the action.</li></ul></section>
+
+<section class="note-sec"><h2 id="memory">Memory</h2>
+
+<p>A policy that sees only the present cannot know whether it has already checked a drawer. Four kinds of memory are in use.</p><ul><li><strong>A longer context.</strong> Feed more past frames. Simple, expensive, and it invites the shortcut of copying past actions.</li><li><strong>A written log.</strong> The high-level model keeps short notes on what has been done, and reads them at each decision.</li><li><strong>Keyframes.</strong> Store a few informative past frames instead of all of them.</li><li><strong>A recurrent state.</strong> Carry a fixed-size summary forward in time, as the linear recurrent layers in the <a href="guide-attention.html">attention</a> note do.</li></ul><p>Memory is the least settled part of long-horizon work. Tasks that depend on something no longer visible remain hard.</p></section>
+
+<section class="note-sec"><h2 id="together">How they fit together</h2>
+<div class="tablewrap"><table class="gtable "><thead><tr><th>Method</th><th>Works at</th><th>Fights compounding by</th><th>Costs</th></tr></thead><tbody><tr><th>Action chunks</th><td>Actions to motions</td><td>Fewer decisions</td><td>Reactivity within a chunk</td></tr><tr><th>Sub-task decomposition</th><td>Motions to task</td><td>Shorter chains per policy call; a place to re-plan</td><td>A second model, and a way to detect completion</td></tr><tr><th>Chain of thought</th><td>Inside one decision</td><td>Making each decision more reliable</td><td>Time, and labelled reasoning</td></tr><tr><th>Recovery and retries</th><td>Any level</td><td>Turning a failure into extra steps instead of the end</td><td>A failure detector</td></tr><tr><th>Memory</th><td>Across the task</td><td>Avoiding repeated and skipped steps</td><td>Context, or added machinery</td></tr></tbody></table></div><p>Current systems use most of these at once. The note on <a href="guide-system-architectures.html">system architectures</a> covers how the levels are arranged into models that run at different speeds.</p></section>
+
+<section class="note-sec split2">
+<div><h2 id="mistakes">Common mistakes</h2><ul><li><strong>Quoting per-step success.</strong> Report success on the whole task. The chain is what matters.</li><li><strong>Lengthening chunks to fix a long task.</strong> Chunks help at the scale of seconds. Minutes need decomposition.</li><li><strong>A hierarchy with no completion check.</strong> The high level must know when to move on.</li><li><strong>Assuming the reasoning caused the action.</strong> Test it by editing the reasoning.</li></ul></div>
+<div><h2 id="terms">Terms</h2><dl class="terms"><dt>Horizon</dt><dd>How many steps or how much time a task takes.</dd><dt>Action chunk</dt><dd>A block of future actions predicted in one call.</dd><dt>Sub-task</dt><dd>One step of a longer task, short enough for a low-level policy to complete.</dd><dt>Chain of thought</dt><dd>Writing intermediate reasoning steps before an answer or action.</dd><dt>Re-planning</dt><dd>Choosing a new next step after observing the result of the last one.</dd><dt>Completion detection</dt><dd>Deciding that a sub-task has finished, successfully or not.</dd></dl></div></section>
+
+        <section class="note-sec split2 more"><div><h2>Further reading</h2><ul class="links"><li><a href="https://arxiv.org/abs/2304.13705">Zhao et al., 2023. Learning Fine-Grained Bimanual Manipulation with Low-Cost Hardware (action chunking).</a></li><li><a href="https://arxiv.org/abs/2204.01691">Ahn et al., 2022. Do As I Can, Not As I Say: Grounding Language in Robotic Affordances (SayCan).</a></li><li><a href="https://arxiv.org/abs/2207.05608">Huang et al., 2022. Inner Monologue: Embodied Reasoning through Planning with Language Models.</a></li><li><a href="https://arxiv.org/abs/2201.11903">Wei et al., 2022. Chain-of-Thought Prompting Elicits Reasoning in Large Language Models.</a></li><li><a href="https://arxiv.org/abs/2407.08693">Zawalski et al., 2024. Robotic Control via Embodied Chain-of-Thought Reasoning.</a></li><li><a href="https://arxiv.org/abs/2403.01823">Belkhale et al., 2024. RT-H: Action Hierarchies Using Language.</a></li><li><a href="https://arxiv.org/abs/2503.22020">Zhao et al., 2025. CoT-VLA: Visual Chain-of-Thought Reasoning for Vision-Language-Action Models.</a></li><li><a href="https://arxiv.org/abs/2502.19417">Shi et al., 2025. Hi Robot: Open-Ended Instruction Following with Hierarchical Vision-Language-Action Models.</a></li><li><a href="https://arxiv.org/abs/2506.07339">Black et al., 2025. Real-Time Execution of Action Chunking Flow Policies.</a></li></ul></div></section>
+        <nav class="pager" aria-label="Guide pages"><a href="guide-system-architectures.html"><span>Previous</span>System 0, 1 and 2 architectures</a><a class="pnext" href="guide-reinforcement-learning.html"><span>Next</span>Reinforcement learning</a></nav>
+      </article>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div>
+        <p class="foot-title">Get in touch</p>
+        <p>Interesting problems in robotics and machine learning, collaboration, or questions about past work.</p>
+      </div>
+      <div class="foot-links"><a href="mailto:matthew.wnuk@gmail.com">matthew.wnuk@gmail.com</a><a href="https://www.linkedin.com/in/matthewwnuk">LinkedIn</a><a href="https://github.com/wnukmat">GitHub</a><a href="https://huggingface.co/mwnuk">Hugging Face</a><a href="resume.html">Resume</a></div>
+    </div>
+  </footer>
+</body>
+</html>

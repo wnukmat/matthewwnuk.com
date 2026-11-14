@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Failure triage: a guide to deep learning and robotics | Matthew Wnuk</title>
+  <meta name="description" content="When the robot fails: how to tell whether the controller, the pipeline, the data or the policy is at fault.">
+  <link rel="canonical" href="https://www.matthewwnuk.com/guide-failure-triage.html">
+  <meta property="og:site_name" content="Matthew Wnuk">
+  <meta property="og:title" content="Failure triage: a guide to deep learning and robotics | Matthew Wnuk">
+  <meta property="og:description" content="When the robot fails: how to tell whether the controller, the pipeline, the data or the policy is at fault.">
+  <meta property="og:url" content="https://www.matthewwnuk.com/guide-failure-triage.html">
+  <meta property="og:image" content="https://www.matthewwnuk.com/img/headshot.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="site-name" href="./"><img src="favicon.svg" alt="" width="28" height="28">Matthew Wnuk</a>
+      <nav aria-label="Main">
+        <a href="./#work">Work</a>
+        <a href="guide.html" aria-current="page">Guide</a>
+        <a href="./#experience">Experience</a>
+        <a href="resume.html">Resume</a>
+        <a href="about.html">About</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+
+    <header class="case-head guide-head">
+      <div class="wrap">
+        <a class="back" href="guide.html">&larr; All topics</a>
+        <p class="eyebrow">Guide &middot; Practice &middot; Topic 26 of 31</p>
+        <h1>Failure triage</h1>
+        <p class="dek">When the robot fails: how to tell whether the controller, the pipeline, the data or the policy is at fault.</p>
+        <p class="gmeta"><span>4 minute read</span><span class="assumes">Builds on: <a href="guide-robotics-fundamentals.html">Robotics fundamentals</a>, <a href="guide-robot-learning-basics.html">Robot learning basics</a>, <a href="guide-evaluation.html">Evaluation</a></span></p>
+      </div>
+    </header>
+    <div class="wrap note">
+      <aside class="toc card"><h2>In this note</h2><ol><li><a href="#order">Find the layer before fixing anything</a></li><li><a href="#controller">1. Did the robot do what was commanded?</a></li><li><a href="#mismatch">2. Did the policy see what it saw in training?</a></li><li><a href="#data">3 and 4. Is it in the data, and does the data agree?</a></li><li><a href="#policy">5. Only then, the policy</a></li><li><a href="#habits">Habits that make triage possible</a></li><li><a href="#mistakes">Common mistakes</a></li></ol>
+        <h2>Key points</h2><ul class="keys"><li>Check the controller, then the pipeline, then the data, and only then the policy.</li><li>Replay a recorded episode. If that fails, the policy is not the problem.</li><li>A coverage gap needs more data. A consistency problem needs cleaner data.</li></ul></aside>
+      <article class="note-body">
+<section class="note-sec"><h2 id="order">Find the layer before fixing anything</h2>
+
+<p>When a robot fails, the instinct is to retrain the policy. That is the slowest fix and often the wrong one. A learned policy sits on a stack: a controller underneath, a data pipeline feeding it, and a dataset behind it. A fault in any layer looks, from the outside, like a bad policy.</p>
+<figure class="gfig card "><a class="zoom" href="img/guide/triage_flow.png"><img src="img/guide/triage_flow.png" width="1500" height="906" loading="lazy" alt="A flow of four yes or no questions. Did the robot do what was commanded? If not: controller, calibration or timing. Did the policy see what it saw in training? If not: training and deployment do not match. Is this situation in the data? If not: data coverage. Do the demonstrations agree here? If not: data consistency. Only if all four are yes: the policy or its training."></a><figcaption>The order to check in. Each question is cheaper to answer than the one below it, and each rules out a whole layer.</figcaption></figure>
+<p>Work down the list and stop at the first “no”. The order is by cost. The first two questions take minutes and need no training run. The last one can take days.</p></section>
+
+<section class="note-sec"><h2 id="controller">1. Did the robot do what was commanded?</h2>
+
+<p>Take the controller out of the question first. Log the actions the policy sent and the motion the robot actually made, and compare them.</p>
+<figure class="gfig card "><a class="zoom" href="img/guide/cmd_vs_achieved.png"><img src="img/guide/cmd_vs_achieved.png" width="1500" height="600" loading="lazy" alt="Left: a scatter of commanded against achieved motion per step for 379 episodes, lying close to a straight line with correlation 0.97. Middle: commanded and achieved motion over time in recorded data, nearly on top of each other. Right: a simulated faulty controller where the achieved motion lags the command and is cut off at a limit."></a><figcaption>Left and middle: real recorded data. Across 379 LIBERO episodes the achieved motion follows the command closely (correlation 0.97; a command of 1.0 moves the hand about 1.2 cm per step). Right: the same command passed through a simulated fault, a delay and a speed limit, to show what to look for.</figcaption></figure>
+<p>A healthy system looks like the middle panel. Three patterns point at the controller or the hardware and not at the policy: the achieved motion <strong>lags</strong> the command, it is <strong>clipped</strong> at a limit the policy does not know about, or it is <strong>offset</strong> by a constant, which suggests calibration.</p>
+<p>The decisive test is replay. Take a recorded demonstration and send its actions to the robot with no policy involved. If the replay fails, no policy trained on that data can succeed, and the problem is below the policy.</p></section>
+
+<section class="note-sec"><h2 id="mismatch">2. Did the policy see what it saw in training?</h2>
+
+<p>The second layer is everything between the sensors and the network. These faults are silent, and each has been met before in this guide.</p><div class="tablewrap"><table class="gtable "><thead><tr><th>Check</th><th>How to check it</th></tr></thead><tbody><tr><th>Camera placement and order</th><td>Overlay a live frame on a training frame. Confirm that the wrist and scene cameras are not swapped.</td></tr><tr><th>Image processing</th><td>Same crop, resize, colour order and compression as in training.</td></tr><tr><th>Normalisation statistics</th><td>The checkpoint’s statistics are the ones applied, in both directions.</td></tr><tr><th>Action convention</th><td>Same frame, same units, absolute or relative, same gripper sign.</td></tr><tr><th>Timing</th><td>Same control rate; images and body state no staler than in training.</td></tr></tbody></table></div><p>A useful shortcut is to feed the policy a training episode’s observations, offline, through the deployment code path. Its outputs should match the recorded actions about as well as they did in training. If they do not, the pipeline differs.</p></section>
+
+<section class="note-sec"><h2 id="data">3 and 4. Is it in the data, and does the data agree?</h2>
+
+<p>If the robot executes commands faithfully and the inputs match, look at the dataset before the model.</p>
+<figure class="gfig card "><a class="zoom" href="img/guide/coverage.png"><img src="img/guide/coverage.png" width="1500" height="602" loading="lazy" alt="Left: a heat map of where the robot&#x27;s hand went across 35 demonstrations of one task, with a marked test position in an empty region. Right: hand height against progress through the episode for every demonstration, with one stage highlighted where the curves spread apart most."></a><figcaption>Real data: 35 demonstrations of one LIBERO task. Left: where the hand went, with a hypothetical test position the data never visited. Right: hand height through the task. The demonstrations spread most around 40% of the way through.</figcaption></figure><ul><li><strong>Coverage.</strong> Was the failing situation ever demonstrated? Find the nearest training episodes to the failure, by object position or by image embedding. If the nearest ones are far away, the policy was never shown what to do, and the fix is to collect that case.</li><li><strong>Consistency.</strong> Where the data does cover the situation, do the demonstrations agree? In the right-hand panel they differ by several centimetres at one stage. Wide spread where a precise motion is needed means the policy is being taught several answers. The fix is to clean or re-collect, not to train longer.</li></ul><p>These two have opposite cures, which is why they are separate questions. More data fixes a coverage gap and can make a consistency problem worse.</p></section>
+
+<section class="note-sec"><h2 id="policy">5. Only then, the policy</h2>
+
+<p>If all four answers are yes, the fault is in the model or its training: too little capacity, an objective that averages over valid choices, too much or too little history, a chunk that is too long to react, or a run that had not converged. Change one of these at a time and compare against the unchanged run on the same test positions.</p></section>
+
+<section class="note-sec"><h2 id="habits">Habits that make triage possible</h2>
+<ul><li><strong>Log everything, every episode.</strong> Images, body state, commanded and achieved actions, timestamps, and the release that was running. A failure that was not recorded cannot be diagnosed.</li><li><strong>Keep a failure taxonomy.</strong> Label each failure with a stage and a cause, and count. The largest group is the next piece of work.</li><li><strong>Reproduce before fixing.</strong> Find the starting conditions that fail repeatedly. A fix cannot be verified against a failure that happened once.</li><li><strong>Change one thing.</strong> Then re-run the same failing cases.</li></ul></section>
+
+<section class="note-sec split2">
+<div><h2 id="mistakes">Common mistakes</h2><ul><li><strong>Retraining first.</strong> It is the most expensive test and it changes several things at once.</li><li><strong>Collecting more data for a consistency problem.</strong> More conflicting demonstrations do not resolve a conflict.</li><li><strong>Diagnosing from the success rate.</strong> The number says that something failed. Only the logs say what.</li></ul></div>
+<div><h2 id="terms">Terms</h2><dl class="terms"><dt>Replay</dt><dd>Sending a recorded episode’s actions to the robot with no policy in the loop.</dd><dt>Coverage</dt><dd>Whether the training data includes situations like the one being tested.</dd><dt>Consistency</dt><dd>Whether demonstrations of the same situation agree with each other.</dd><dt>Failure taxonomy</dt><dd>A fixed list of failure stages and causes used to label and count failures.</dd></dl></div></section>
+
+        <section class="note-sec split2 more"><div><h2>Further reading</h2><ul class="links"><li><a href="https://arxiv.org/abs/2506.19121">Agia et al., 2025. CUPID: Curating Data your Robot Loves with Influence Functions.</a></li><li><a href="https://karpathy.github.io/2019/04/25/recipe/">Karpathy, 2019. A Recipe for Training Neural Networks.</a></li></ul></div></section>
+        <nav class="pager" aria-label="Guide pages"><a href="guide-evaluation.html"><span>Previous</span>Evaluation</a><a class="pnext" href="guide-training-at-scale.html"><span>Next</span>Training at scale</a></nav>
+      </article>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div>
+        <p class="foot-title">Get in touch</p>
+        <p>Interesting problems in robotics and machine learning, collaboration, or questions about past work.</p>
+      </div>
+      <div class="foot-links"><a href="mailto:matthew.wnuk@gmail.com">matthew.wnuk@gmail.com</a><a href="https://www.linkedin.com/in/matthewwnuk">LinkedIn</a><a href="https://github.com/wnukmat">GitHub</a><a href="https://huggingface.co/mwnuk">Hugging Face</a><a href="resume.html">Resume</a></div>
+    </div>
+  </footer>
+</body>
+</html>

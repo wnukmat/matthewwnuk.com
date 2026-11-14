@@ -38,19 +38,22 @@
     <header class="case-head guide-head">
       <div class="wrap">
         <a class="back" href="guide.html">&larr; All topics</a>
-        <p class="eyebrow">Guide &middot; Practice &middot; Topic 11 of 15</p>
+        <p class="eyebrow">Guide &middot; Practice &middot; Topic 25 of 31</p>
         <h1>Evaluation</h1>
         <p class="dek">How to tell whether a model, or a robot, is actually better.</p>
-        <p class="gmeta"><span>2 minute read</span></p>
+        <p class="gmeta"><span>7 minute read</span><span class="assumes">Builds on: <a href="guide-things-i-know.html">Things I know</a></span></p>
       </div>
     </header>
     <div class="wrap note">
-      <aside class="toc card"><h2>In this note</h2><ol><li><a href="#counts">Four counts and the ratios built on them</a></li><li><a href="#trials">Count your trials</a></li><li><a href="#hides">What a single number hides</a></li><li><a href="#mistakes">Common mistakes</a></li></ol>
+      <aside class="toc card"><h2>In this note</h2><ol><li><a href="#success">Start by defining success</a></li><li><a href="#counts">Four counts and the ratios built on them</a></li><li><a href="#trials">Count your trials</a></li><li><a href="#compare">Comparing two policies</a></li><li><a href="#partial">Partial credit</a></li><li><a href="#hides">What a single number hides</a></li><li><a href="#proxies">Cheaper stand-ins, and how far to trust them</a></li><li><a href="#heldout">Held-out scenes</a></li><li><a href="#deployment-metrics">Deployment metrics</a></li><li><a href="#mistakes">Common mistakes</a></li></ol>
         <h2>Key points</h2><ul class="keys"><li>Accuracy hides which kind of mistake the model makes; precision and recall show it.</li><li>Ten trials cannot tell 70% from 50%. Report the number of trials and an interval, not just a percentage.</li><li>Break results down before you believe them, and look at the failures yourself.</li></ul></aside>
       <article class="note-body">
+<section class="note-sec"><h2 id="success">Start by defining success</h2>
+
+<p>Before any trial is run, write down what counts. A success definition that is decided afterwards drifts toward whatever the favoured model did.</p><ul><li><strong>The end state.</strong> State it so that two people would agree: “the mug is upright on the shelf and the gripper has released it”, not “the mug was put away”.</li><li><strong>The limits.</strong> A time limit, a number of allowed retries, and whether a person may reset anything.</li><li><strong>What disqualifies.</strong> Knocking over another object, excessive force, leaving the workspace.</li><li><strong>Who decides.</strong> A person following the written rule, or an automatic check that has itself been tested against people.</li></ul><p>Record every trial on video. Disputes about a borderline case are settled by watching it against the written definition.</p></section>
 <section class="note-sec"><h2 id="counts">Four counts and the ratios built on them</h2>
 <p>For any yes-or-no decision, four counts tell the whole story. Every named metric is a ratio of them.</p>
-<figure class="gfig card narrow"><img src="img/guide/g-confusion.jpg" width="1336" height="814" loading="lazy" alt="A two by two confusion matrix: true positive, false negative, false positive, true negative"><figcaption>Predictions against reality.</figcaption></figure>
+<figure class="gfig card narrow"><a class="zoom" href="img/guide/g-confusion.jpg"><img src="img/guide/g-confusion.jpg" width="1336" height="814" loading="lazy" alt="A two by two confusion matrix: true positive, false negative, false positive, true negative"></a><figcaption>Predictions against reality.</figcaption></figure>
 <ul><li><strong>Precision</strong> = TP / (TP + FP). When the model says yes, how often is it right?</li>
 <li><strong>Recall</strong> = TP / (TP + FN). Of the real positives, how many did it find?</li>
 <li><strong>Specificity</strong> = TN / (TN + FP). Of the real negatives, how many did it reject?</li>
@@ -59,11 +62,21 @@
 
 <section class="note-sec"><h2 id="trials">Count your trials</h2>
 <p>Robot evaluations are slow, so the number of trials is small, and small samples carry wide error bars.</p>
-<figure class="gfig card narrow"><img src="img/guide/g-trials.jpg" width="1396" height="814" loading="lazy" alt="Ranges for a 70 percent measured success rate at 10, 20, 50, 100 and 200 trials, narrowing as trials increase"><figcaption>The 95% interval around a measured success rate of 70% (Wilson score interval).</figcaption></figure>
+<figure class="gfig card narrow"><a class="zoom" href="img/guide/g-trials.jpg"><img src="img/guide/g-trials.jpg" width="1396" height="814" loading="lazy" alt="Ranges for a 70 percent measured success rate at 10, 20, 50, 100 and 200 trials, narrowing as trials increase"></a><figcaption>The 95% interval around a measured success rate of 70% (Wilson score interval).</figcaption></figure>
 <div class="tablewrap"><table class="gtable num"><thead><tr><th>Trials</th><th>Successes</th><th>Measured</th><th>95% interval</th></tr></thead><tbody>
 <tr><td>10</td><td>7</td><td>70%</td><td>40% to 89%</td></tr><tr><td>20</td><td>14</td><td>70%</td><td>48% to 85%</td></tr><tr><td>50</td><td>35</td><td>70%</td><td>56% to 81%</td></tr><tr><td>100</td><td>70</td><td>70%</td><td>60% to 78%</td></tr><tr><td>200</td><td>140</td><td>70%</td><td>63% to 76%</td></tr></tbody></table></div>
 <p>Ten trials cannot tell 70% from 50%. Report the number of trials and an interval with every success rate. A fair test also needs a protocol written before the first run: the tasks, the object positions, and what counts as success. Every model should face the same positions, lighting and time limit, and where possible the operator should not know which model is running.</p></section>
 
+<section class="note-sec"><h2 id="compare">Comparing two policies</h2>
+
+<p>The usual question is not “how good is this policy?” but “is the new one better than the old one?”. That needs far more trials than most people run.</p>
+<figure class="gfig card "><a class="zoom" href="img/guide/eval_power.png"><img src="img/guide/eval_power.png" width="1500" height="671" loading="lazy" alt="Left: trials needed per policy against the true gap between two policies, falling from 388 at a 10-point gap to 93 at 20 points and 39 at 30 points. Right: the chance that the worse policy scores as well or better, against the gap, for 20, 50 and 100 trials each."></a><figcaption>Calculated for a baseline policy at 50% success. Left: trials per policy for an 80% chance of detecting the gap at the usual 5% significance level. Right: how often the truly worse policy ties or wins.</figcaption></figure>
+<p>To detect a real 10-point improvement reliably takes about 390 trials of each policy. A 20-point improvement takes about 90, and a 30-point one about 40. With 20 trials each, a policy that is truly 10 points worse will tie or beat the better one in 31% of comparisons.</p>
+<p>Three things make a small budget go further.</p><ul><li><strong>Pair the trials.</strong> Run both policies from the same starting layouts, and compare layout by layout. Differences between layouts then cancel out.</li><li><strong>Interleave.</strong> Alternate the policies during the session so that lighting, battery level and wear affect both alike.</li><li><strong>Call small gaps ties.</strong> If the intervals overlap heavily, the honest report is “no measurable difference”.</li></ul></section>
+<section class="note-sec"><h2 id="partial">Partial credit</h2>
+
+<figure class="gfig card "><a class="zoom" href="img/guide/eval_stages.png"><img src="img/guide/eval_stages.png" width="1500" height="593" loading="lazy" alt="Bar chart of the share of episodes reaching each of four stages for two policies. Policy A reaches and grasps in over 90 percent of episodes and falls to 45 percent at lifting. Policy B loses 40 percent at reaching. Both finish at 40 percent."></a><figcaption>Illustrative numbers. Both policies succeed 40% of the time. Policy A loses the object while lifting. Policy B often fails to reach it.</figcaption></figure>
+<p>Success or failure throws away most of what a trial shows. Scoring the stages of a task (reached, grasped, lifted, placed) gives a finer measure from the same trials and says where to work next. Define the stages before testing, as with everything else in the protocol.</p></section>
 <section class="note-sec"><h2 id="hides">What a single number hides</h2>
 <p>An average over tasks can conceal exactly the failures that matter. Break results down along the ways a robot can be surprised: new object positions, new objects of a familiar kind, new scenes and lighting, and new wording of the instruction.</p>
 <ul><li><strong>Saturation.</strong> When every method scores above 95% on a benchmark, the differences between them are mostly noise.</li>
@@ -71,19 +84,29 @@
 <li><strong>Simulation only.</strong> A score in simulation may not carry over to hardware.</li></ul>
 <p>Then watch the failures. Label each one (perception, grasp, wrong object, timing, recovery), count the labels, and work on the largest group.</p></section>
 
+<section class="note-sec"><h2 id="proxies">Cheaper stand-ins, and how far to trust them</h2>
+
+<p>Real trials are slow, so teams lean on two substitutes.</p><ul><li><strong>Error on held-out demonstrations.</strong> It is quick and catches broken training runs. It is a weak predictor of success, because a policy can match recorded actions closely and still fail in the loop. The first note shows a policy that does exactly that.</li><li><strong>Simulation.</strong> It gives thousands of repeatable trials. Simulated benchmarks such as LIBERO are useful for comparing methods under identical conditions, and simulated copies of real setups have been built specifically so that scores track real-robot results.</li></ul><p>The test for either stand-in is the same: take several policies, rank them by the cheap measure and by real trials, and see whether the rankings agree. Until that has been checked for your setup, treat the cheap number as a filter and not a verdict.</p></section>
+<section class="note-sec"><h2 id="heldout">Held-out scenes</h2>
+
+<p>A policy tested where it was trained is being tested on its memory. Keep some scenes, objects and layouts out of all training and tuning, and report results on them separately from results on familiar ones. The gap between the two numbers is the most useful single measure of generalisation. The note on <a href="guide-data-efficiency.html">data efficiency and generalisation</a> lists the axes to hold out along.</p>
+<p>A held-out set stays held out only if nobody tunes against it. Once decisions have been made by looking at its results, it has become a second training set, and a new one is needed.</p></section>
+<section class="note-sec"><h2 id="deployment-metrics">Deployment metrics</h2>
+
+<p>Success rate on a test bench answers “can it do the task?”. A deployed robot is judged on different questions: how much work it does, and how much attention it needs.</p><div class="tablewrap"><table class="gtable "><thead><tr><th>Metric</th><th>What it measures</th></tr></thead><tbody><tr><th>Interventions per hour</th><td>How often a person had to step in. The headline number for autonomy.</td></tr><tr><th>Time between interventions</th><td>The same thing from the other side: how long the robot runs alone.</td></tr><tr><th>Throughput</th><td>Tasks completed per hour, usually against a person doing the same job.</td></tr><tr><th>Success over long runs</th><td>Success across hours of continuous work, where small failure rates compound.</td></tr><tr><th>Recovery rate</th><td>The share of its own errors the robot corrects without help.</td></tr><tr><th>Safety events</th><td>Stops triggered, limits reached, contacts above threshold.</td></tr><tr><th>Uptime</th><td>The share of scheduled time the system was able to work at all.</td></tr></tbody></table></div><p>These can move in opposite directions from the bench number. A policy that succeeds slightly less often and recovers from its own failures may need far fewer interventions, and that is the one to ship.</p></section>
 <section class="note-sec split2">
 <div><h2 id="mistakes">Common mistakes</h2><ul>
 <li><strong>A percentage with no count.</strong> &ldquo;80% success&rdquo; means little without the number of trials.</li>
 <li><strong>Unequal conditions.</strong> Comparing models tested on different days, positions or lighting.</li>
-<li><strong>Tuning on the test tasks.</strong> Each choice made against the test set leaks a little of it into the model.</li></ul></div>
+<li><strong>Tuning on the test tasks.</strong> Each choice made against the test set leaks a little of it into the model.</li><li><strong>Declaring a winner on 20 trials.</strong> Work out how many trials the gap you care about needs before running any.</li></ul></div>
 <div><h2 id="terms">Terms</h2><dl class="terms">
 <dt>Closed-loop evaluation</dt><dd>Running the policy so its actions affect what it sees next.</dd>
 <dt>Confidence interval</dt><dd>The range the true rate plausibly lies in, given the trials run.</dd>
 <dt>Calibration</dt><dd>Whether &ldquo;90% confident&rdquo; is right 90% of the time.</dd>
-<dt>Held-out</dt><dd>Data or tasks the model never saw in training.</dd></dl></div></section>
+<dt>Held-out</dt><dd>Data or tasks the model never saw in training.</dd><dt>Statistical power</dt><dd>The chance that a test detects a difference that is really there.</dd><dt>Paired comparison</dt><dd>Testing two policies under the same conditions, trial by trial.</dd><dt>Intervention</dt><dd>A person stepping in to correct or rescue the robot.</dd><dt>Throughput</dt><dd>The amount of completed work per unit of time.</dd></dl></div></section>
 
-        <section class="note-sec split2 more"><div><h2>In my work</h2><ul class="links"><li><a href="maritime-retrieval.html">Maritime retrieval: ranking metrics in practice</a></li></ul></div><div><h2>Further reading</h2><ul class="links"><li><a href="https://arxiv.org/abs/2306.03310">Liu et al., 2023. LIBERO: Benchmarking Knowledge Transfer for Lifelong Robot Learning.</a></li><li>Wilson, 1927. Probable Inference, the Law of Succession, and Statistical Inference. Journal of the American Statistical Association.</li></ul></div></section>
-        <nav class="pager" aria-label="Guide pages"><a href="guide-robot-data.html"><span>Previous</span>Data for robots</a><a class="pnext" href="guide-training-at-scale.html"><span>Next</span>Training at scale</a></nav>
+        <section class="note-sec split2 more"><div><h2>In my work</h2><ul class="links"><li><a href="maritime-retrieval.html">Maritime retrieval: ranking metrics in practice</a></li></ul></div><div><h2>Further reading</h2><ul class="links"><li><a href="https://arxiv.org/abs/2306.03310">Liu et al., 2023. LIBERO: Benchmarking Knowledge Transfer for Lifelong Robot Learning.</a></li><li>Wilson, 1927. Probable Inference, the Law of Succession, and Statistical Inference. Journal of the American Statistical Association.</li><li><a href="https://arxiv.org/abs/2405.05941">Li et al., 2024. Evaluating Real-World Robot Manipulation Policies in Simulation (SIMPLER).</a></li><li><a href="https://arxiv.org/abs/2506.18123">Atreya et al., 2025. RoboArena: Distributed Real-World Evaluation of Generalist Robot Policies.</a></li></ul></div></section>
+        <nav class="pager" aria-label="Guide pages"><a href="guide-senses.html"><span>Previous</span>Senses beyond vision</a><a class="pnext" href="guide-failure-triage.html"><span>Next</span>Failure triage</a></nav>
       </article>
     </div>
   </main>

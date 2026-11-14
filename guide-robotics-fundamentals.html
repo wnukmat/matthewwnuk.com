@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Robotics fundamentals: a guide to deep learning and robotics | Matthew Wnuk</title>
+  <meta name="description" content="Frames, kinematics, rotations, controllers and cameras: the classical layer every learned policy sits on.">
+  <link rel="canonical" href="https://www.matthewwnuk.com/guide-robotics-fundamentals.html">
+  <meta property="og:site_name" content="Matthew Wnuk">
+  <meta property="og:title" content="Robotics fundamentals: a guide to deep learning and robotics | Matthew Wnuk">
+  <meta property="og:description" content="Frames, kinematics, rotations, controllers and cameras: the classical layer every learned policy sits on.">
+  <meta property="og:url" content="https://www.matthewwnuk.com/guide-robotics-fundamentals.html">
+  <meta property="og:image" content="https://www.matthewwnuk.com/img/headshot.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="site-name" href="./"><img src="favicon.svg" alt="" width="28" height="28">Matthew Wnuk</a>
+      <nav aria-label="Main">
+        <a href="./#work">Work</a>
+        <a href="guide.html" aria-current="page">Guide</a>
+        <a href="./#experience">Experience</a>
+        <a href="resume.html">Resume</a>
+        <a href="about.html">About</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+
+    <header class="case-head guide-head">
+      <div class="wrap">
+        <a class="back" href="guide.html">&larr; All topics</a>
+        <p class="eyebrow">Guide &middot; Robots &middot; Topic 14 of 31</p>
+        <h1>Robotics fundamentals</h1>
+        <p class="dek">Frames, kinematics, rotations, controllers and cameras: the classical layer every learned policy sits on.</p>
+        <p class="gmeta"><span>6 minute read</span></p>
+      </div>
+    </header>
+    <div class="wrap note">
+      <aside class="toc card"><h2>In this note</h2><ol><li><a href="#frames">Everything is measured in a frame</a></li><li><a href="#kinematics">Kinematics: joints and the hand</a></li><li><a href="#rotations">Rotations are not ordinary numbers</a></li><li><a href="#control">From an action to motor torque</a></li><li><a href="#cameras">Cameras and calibration</a></li><li><a href="#time">Time is part of the state</a></li><li><a href="#mistakes">Common mistakes</a></li></ol>
+        <h2>Key points</h2><ul class="keys"><li>Every position and rotation is relative to a frame. Know which one, and in what units.</li><li>An action only has a meaning together with the controller that executes it.</li><li>Camera placement and timing are part of the model, even when no calibration is used.</li></ul></aside>
+      <article class="note-body">
+<section class="note-sec"><h2 id="frames">Everything is measured in a frame</h2>
+
+<p>A robot never knows “where the cup is”. It knows where the cup is <em>relative to something</em>: the camera, the robot’s base, or the gripper. Each of those is a <strong>frame</strong>, a point with a set of axes attached. A <strong>pose</strong> is the position and orientation of one frame as seen from another.</p>
+<figure class="gfig card "><a class="zoom" href="img/guide/frames.png"><img src="img/guide/frames.png" width="1500" height="868" loading="lazy" alt="A robot arm, a camera on a stand and an object on a table, each with its own pair of axes. Dashed arrows show three transforms: base to gripper from joint angles, base to camera from calibration, and camera to object from perception."></a><figcaption>Five frames and the three transforms a manipulation system uses all the time. Each transform comes from a different source, so each has its own kind of error.</figcaption></figure>
+<p>A <strong>transform</strong> converts a pose from one frame to another, and transforms chain. To reach for the cup, the robot needs the cup in its base frame, which is the base-to-camera transform followed by the camera-to-object transform. An error in either link passes straight through: a camera calibration that is 2 cm off gives a grasp that is 2 cm off.</p>
+<p>Three questions catch most frame bugs. Which frame is this number expressed in? What are the units, metres or millimetres, radians or degrees? In which order are the transforms applied? None of these mistakes raises an error. The robot just reaches for the wrong place.</p></section>
+
+<section class="note-sec"><h2 id="kinematics">Kinematics: joints and the hand</h2>
+
+<p><strong>Forward kinematics</strong> turns joint angles into the pose of the gripper. It is a fixed calculation with one answer. <strong>Inverse kinematics</strong> goes the other way, from a wanted gripper pose to joint angles, and it is harder: there can be several answers, or none.</p>
+<figure class="gfig card "><a class="zoom" href="img/guide/ik_two_link.png"><img src="img/guide/ik_two_link.png" width="1500" height="754" loading="lazy" alt="Left: a two-link arm reaching the same target with the elbow up and with the elbow down, and a point marked out of reach. Right: the hand&#x27;s path from A to B is curved when the joints move evenly and straight when the hand moves evenly."></a><figcaption>Computed for a two-link arm. Left: two joint solutions for one hand position, and a target with none. Right: the same start and end, interpolated in joint space and in hand space.</figcaption></figure>
+<p>This matters as soon as a policy outputs gripper poses. A solver underneath has to pick one of the solutions, and near a <strong>singularity</strong>, where the arm is stretched out or two joints line up, a small move of the hand needs a very large move of the joints. A policy that outputs joint angles avoids the solver, at the price of being tied to one robot.</p>
+<p>The right-hand panel shows a second consequence. Moving the joints evenly does not move the hand in a straight line. If the hand has to stay on a line, for example to slide along a table, the motion has to be planned in the hand’s space.</p></section>
+
+<section class="note-sec"><h2 id="rotations">Rotations are not ordinary numbers</h2>
+
+<p>Position is three numbers that behave well. Orientation is not. Every compact way to write a rotation has a place where it breaks.</p>
+<figure class="gfig card "><a class="zoom" href="img/guide/rotation_reps.png"><img src="img/guide/rotation_reps.png" width="1500" height="815" loading="lazy" alt="Top: an angle written as one number rises steadily and then jumps from plus 180 degrees to minus 180 degrees. Bottom: the same rotation written as a cosine and a sine changes smoothly throughout."></a><figcaption>A gripper turning steadily. Written as one angle, the value jumps where nothing physical happened. Written as two numbers, it is smooth.</figcaption></figure>
+<p>A network asked to output the top curve must reproduce a jump exactly, and averaging two nearly identical poses on either side of it gives a pose that points the opposite way. That is why modern policies avoid single angles.</p><div class="tablewrap"><table class="gtable "><thead><tr><th>Representation</th><th>Numbers</th><th>Its problem</th><th>Where you will see it</th></tr></thead><tbody><tr><th>Euler angles</th><td>3</td><td>Depends on the axis order; wraps around; loses a degree of freedom at some poses</td><td>Datasets, user interfaces</td></tr><tr><th>Axis-angle</th><td>3</td><td>Wraps at half a turn</td><td>Many robot action formats</td></tr><tr><th>Quaternion</th><td>4</td><td>Two quaternions describe every rotation; must be kept at unit length</td><td>Simulators, robot drivers</td></tr><tr><th>Rotation matrix</th><td>9</td><td>Redundant; a network’s output is not a valid matrix without clean-up</td><td>Maths and libraries</td></tr><tr><th>6D (two matrix columns)</th><td>6</td><td>Needs a small step to rebuild the matrix</td><td>Network outputs</td></tr></tbody></table></div>
+<p>Two habits follow. Find out which representation a dataset uses before training on it. And never add rotations: a relative rotation is applied by multiplying, not by adding angles.</p></section>
+
+<section class="note-sec"><h2 id="control">From an action to motor torque</h2>
+
+<p>A learned policy produces targets 10 to 50 times a second. A classical <strong>controller</strong> runs underneath at 500 to 1,000 times a second and turns each target into motor torques. The controller’s settings decide what an action physically does.</p>
+<figure class="gfig card "><a class="zoom" href="img/guide/impedance.png"><img src="img/guide/impedance.png" width="1500" height="836" loading="lazy" alt="Two simulated runs of the same position command into a surface. The stiff controller reaches the surface quickly, hits it hard and holds 78 newtons. The compliant controller arrives later and holds 8 newtons."></a><figcaption>A simulated one-joint model. Both controllers receive the same command to a point just past a surface. The stiff one presses with 78 N, the compliant one with 8 N.</figcaption></figure><ul><li><strong>Position control.</strong> Go to this position and resist anything in the way. It is precise in free space and harsh in contact.</li><li><strong>Impedance control.</strong> Behave like a spring and damper around the target. The stiffness sets how much force each millimetre of error produces, so contact is gentle and position is less exact.</li><li><strong>Torque control.</strong> Command the motor torques directly. It gives the most freedom and needs a fast loop and a good model of the robot.</li></ul>
+<p>The lesson for learning is that an action is only meaningful together with the controller that executed it. Demonstrations recorded with a compliant controller will not replay correctly through a stiff one. The commanded position and the position actually reached also differ, and a dataset may store either.</p></section>
+
+<section class="note-sec"><h2 id="cameras">Cameras and calibration</h2>
+
+<figure class="gfig card narrow"><a class="zoom" href="img/guide/pinhole.png"><img src="img/guide/pinhole.png" width="1500" height="715" loading="lazy" alt="A pinhole camera diagram: a ray from a point in the scene passes through the image plane to the camera centre, with the formula u equals f times X over Z plus c x."></a><figcaption>The pinhole model. A point’s pixel position depends on its sideways offset divided by its depth, which is why one image cannot give distance on its own.</figcaption></figure>
+<p><strong>Intrinsics</strong> describe the camera itself: focal length, image centre and lens distortion. They convert a pixel into a ray. <strong>Extrinsics</strong> are the camera’s pose relative to the robot. Finding them is called hand-eye calibration. With both, and a depth value, a pixel becomes a point the robot can reach for.</p>
+<p>End-to-end policies do not use calibration explicitly. They learn the mapping from pixels to motion from data. That hides the dependency without removing it. A policy trained with the camera in one place has absorbed that placement, and a camera bumped by a few centimetres is a quiet cause of a drop in success.</p></section>
+
+<section class="note-sec"><h2 id="time">Time is part of the state</h2>
+
+<p>Every sensor and motor has a delay. A camera frame is tens of milliseconds old when it arrives, and a command takes time to become motion. Two rules keep this under control.</p><ul><li><strong>Timestamp everything at the source.</strong> Then align streams by time, not by the order they arrived in.</li><li><strong>Keep the training and deployment timing the same.</strong> If images lagged the joint readings by 100 ms in the data and by 20 ms on the robot, the policy sees a relationship it was never trained on.</li></ul><p>The note on <a href="guide-deployment.html">deployment</a> covers what to do about the delay that remains.</p></section>
+
+<section class="note-sec split2">
+<div><h2 id="mistakes">Common mistakes</h2><ul><li><strong>Mixing frames or units.</strong> A pose in the camera frame fed to a function that expects the base frame gives no error and a wrong reach.</li><li><strong>Adding rotations.</strong> Angles do not add. Compose rotations by multiplication.</li><li><strong>Assuming the command was reached.</strong> Check whether the dataset stores commanded or measured positions.</li><li><strong>Moving the camera.</strong> Treat camera placement as part of the model, and check it before blaming the policy.</li></ul></div>
+<div><h2 id="terms">Terms</h2><dl class="terms"><dt>Frame</dt><dd>A point with axes attached, in which positions and orientations are expressed.</dd><dt>Pose</dt><dd>The position and orientation of one frame relative to another.</dd><dt>Forward kinematics</dt><dd>Computing the gripper pose from the joint angles.</dd><dt>Inverse kinematics</dt><dd>Finding joint angles that give a wanted gripper pose.</dd><dt>Singularity</dt><dd>An arm configuration where some hand motions need very large joint motions.</dd><dt>Impedance control</dt><dd>A controller that makes the robot act like a spring and damper around its target.</dd><dt>Intrinsics and extrinsics</dt><dd>A camera’s internal geometry, and its pose relative to the robot.</dd></dl></div></section>
+
+        <section class="note-sec split2 more"><div><h2>Further reading</h2><ul class="links"><li><a href="https://hades.mech.northwestern.edu/index.php/Modern_Robotics">Lynch and Park. Modern Robotics: Mechanics, Planning, and Control. Free online textbook and videos.</a></li><li><a href="https://arxiv.org/abs/1812.07035">Zhou et al., 2018. On the Continuity of Rotation Representations in Neural Networks.</a></li></ul></div></section>
+        <nav class="pager" aria-label="Guide pages"><a href="guide-perception-and-3d.html"><span>Previous</span>Perception and 3D</a><a class="pnext" href="guide-robot-learning-basics.html"><span>Next</span>Robot learning basics</a></nav>
+      </article>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div>
+        <p class="foot-title">Get in touch</p>
+        <p>Interesting problems in robotics and machine learning, collaboration, or questions about past work.</p>
+      </div>
+      <div class="foot-links"><a href="mailto:matthew.wnuk@gmail.com">matthew.wnuk@gmail.com</a><a href="https://www.linkedin.com/in/matthewwnuk">LinkedIn</a><a href="https://github.com/wnukmat">GitHub</a><a href="https://huggingface.co/mwnuk">Hugging Face</a><a href="resume.html">Resume</a></div>
+    </div>
+  </footer>
+</body>
+</html>

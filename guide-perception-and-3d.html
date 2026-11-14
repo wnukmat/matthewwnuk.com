@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Perception and 3D: a guide to deep learning and robotics | Matthew Wnuk</title>
+  <meta name="description" content="From pixels to objects, depth and maps, and when a robot still needs them.">
+  <link rel="canonical" href="https://www.matthewwnuk.com/guide-perception-and-3d.html">
+  <meta property="og:site_name" content="Matthew Wnuk">
+  <meta property="og:title" content="Perception and 3D: a guide to deep learning and robotics | Matthew Wnuk">
+  <meta property="og:description" content="From pixels to objects, depth and maps, and when a robot still needs them.">
+  <meta property="og:url" content="https://www.matthewwnuk.com/guide-perception-and-3d.html">
+  <meta property="og:image" content="https://www.matthewwnuk.com/img/headshot.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="site-name" href="./"><img src="favicon.svg" alt="" width="28" height="28">Matthew Wnuk</a>
+      <nav aria-label="Main">
+        <a href="./#work">Work</a>
+        <a href="guide.html" aria-current="page">Guide</a>
+        <a href="./#experience">Experience</a>
+        <a href="resume.html">Resume</a>
+        <a href="about.html">About</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+
+    <header class="case-head guide-head">
+      <div class="wrap">
+        <a class="back" href="guide.html">&larr; All topics</a>
+        <p class="eyebrow">Guide &middot; Models &middot; Topic 13 of 31</p>
+        <h1>Perception and 3D</h1>
+        <p class="dek">From pixels to objects, depth and maps, and when a robot still needs them.</p>
+        <p class="gmeta"><span>5 minute read</span><span class="assumes">Builds on: <a href="guide-representation-learning.html">Representation learning</a></span></p>
+      </div>
+    </header>
+    <div class="wrap note">
+      <aside class="toc card"><h2>In this note</h2><ol><li><a href="#why">Why explicit perception still matters</a></li><li><a href="#things">From pixels to things</a></li><li><a href="#depth">Depth and point clouds</a></li><li><a href="#pose">Object pose and grasping</a></li><li><a href="#maps">Maps and navigation</a></li><li><a href="#scenes">Learned 3D scenes</a></li><li><a href="#choice">Modular or end-to-end</a></li><li><a href="#mistakes">Common mistakes</a></li></ol>
+        <h2>Key points</h2><ul class="keys"><li>Open-vocabulary models find and segment objects from a text prompt, with no new training.</li><li>Depth plus camera geometry turns an image into 3D points.</li><li>Deployed robots usually combine a learned policy with explicit perception around it.</li></ul></aside>
+      <article class="note-body">
+<section class="note-sec"><h2 id="why">Why explicit perception still matters</h2>
+
+<p>An end-to-end policy takes pixels in and sends actions out, and it learns whatever perception it needs along the way. That has not made explicit perception obsolete. Systems still need to name objects, measure distances and build maps, for four reasons: to label data, to check whether a task succeeded, to monitor safety, and to plan routes and grasps where a learned policy is not trusted to.</p></section>
+
+<section class="note-sec"><h2 id="things">From pixels to things</h2>
+
+<figure class="gfig card "><a class="zoom" href="img/guide/perception_mugs.jpg"><img src="img/guide/perception_mugs.jpg" width="1500" height="438" loading="lazy" alt="One robot camera image shown four ways: the raw image; boxes labelled mug, plate and robot found from a text prompt; a coloured mask over each of those objects; and a depth map."></a><figcaption>Real model output on one simulated robot camera frame. The boxes come from Grounding DINO given the words “mug, plate, robot”, the masks from SAM 2 prompted with those boxes, and the depth from Depth Anything V2. None of the three was trained on this scene.</figcaption></figure><div class="tablewrap"><table class="gtable "><thead><tr><th>Task</th><th>Output</th><th>Used for</th></tr></thead><tbody><tr><th>Detection</th><td>A box and a label for each object</td><td>Counting, finding what to pick</td></tr><tr><th>Segmentation</th><td>The exact pixels of each object</td><td>Grasp planning, masking, success checks</td></tr><tr><th>Tracking</th><td>The same object followed across frames</td><td>Following moving items, video labelling</td></tr><tr><th>Pose estimation</th><td>An object’s position and orientation in 3D</td><td>Precise placement and insertion</td></tr></tbody></table></div>
+<p>The important change of recent years is <strong>open vocabulary</strong>. Older detectors knew a fixed list of classes. Current ones take a text prompt and find things they were never trained to name, and segmentation models accept a box or a click as the prompt. A new object no longer needs a new labelled dataset.</p>
+<p>They are not reliable everywhere. On another frame from the same dataset, the same detector labelled the robot’s gripper as a moka pot with fair confidence. Unusual views and simulated images are where to check.</p></section>
+
+<section class="note-sec"><h2 id="depth">Depth and point clouds</h2>
+
+<p>Depth turns an image into geometry. It comes from a sensor (two cameras, projected light, or lidar) or from a model that estimates it from one image. Models that predict <strong>relative</strong> depth give the ordering of near and far. <strong>Metric</strong> models estimate actual distances.</p>
+<figure class="gfig card "><a class="zoom" href="img/guide/pointcloud_mugs.jpg"><img src="img/guide/pointcloud_mugs.jpg" width="1500" height="687" loading="lazy" alt="The camera image re-drawn as a cloud of coloured 3D points, seen once from the camera and once from another side, where the mugs and the robot stand up from the table surface."></a><figcaption>Every pixel of the image above, moved into 3D using its predicted depth and the pinhole model. The table is a plane and the mugs stand on it. The ragged edges are depth errors at object boundaries.</figcaption></figure>
+<p>Given depth and the camera intrinsics, each pixel becomes a 3D point, and the image becomes a <strong>point cloud</strong>. The figure is honest about the limits: shapes are plausible, edges smear, and the scale is an estimate. Depth sensors have their own failures on shiny, dark and transparent objects. The <a href="guide-robotics-fundamentals.html">fundamentals</a> note covers the camera model used here.</p></section>
+
+<section class="note-sec"><h2 id="pose">Object pose and grasping</h2>
+
+<p>Many industrial tasks reduce to knowing a part’s pose precisely. A <strong>6D pose</strong> is three numbers of position and three of orientation. Methods either match the image against a known 3D model of the part or, more recently, estimate the pose of objects never seen before from a few reference views. Grasp detectors take a point cloud and propose gripper poses directly.</p>
+<p>This pipeline, perceive, estimate pose, plan, move, is the classical alternative to a learned policy. It is precise and easy to inspect when parts are rigid and known. It struggles with clutter, deformable items and anything it has no model for.</p></section>
+
+<section class="note-sec"><h2 id="maps">Maps and navigation</h2>
+
+<figure class="gfig card "><a class="zoom" href="img/guide/planning.png"><img src="img/guide/planning.png" width="1169" height="759" loading="lazy" alt="A grid map with dark occupied cells, lightly shaded cells that the planner examined, and an orange path from the robot at the lower left to a goal at the upper right."></a><figcaption>A computed example. The planner (A*) examined 284 of the 766 free cells and returned a 36-cell path around the obstacles.</figcaption></figure>
+<p>A mobile robot has to know where it is and what is around it. <strong>SLAM</strong>, simultaneous localisation and mapping, builds the map and tracks the robot’s position in it at once. The simplest map is an <strong>occupancy grid</strong>: free cells and occupied cells. A planner then searches it for a path.</p>
+<p>Newer maps store meaning as well as geometry. Attaching language-aligned features to each place lets a robot act on “go to the kitchen” without anyone marking the kitchen.</p></section>
+
+<section class="note-sec"><h2 id="scenes">Learned 3D scenes</h2>
+
+<p>Neural radiance fields and 3D Gaussian splatting build a 3D model of a scene from ordinary photos taken from known positions, and can then render it from any viewpoint. In robotics they are used to turn a real workspace into a simulated one, to generate new camera views of existing demonstrations, and to check a planned motion against the real geometry.</p></section>
+
+<section class="note-sec"><h2 id="choice">Modular or end-to-end</h2>
+<div class="tablewrap"><table class="gtable "><thead><tr><th></th><th>Modular pipeline</th><th>End-to-end policy</th></tr></thead><tbody><tr><th>How it works</th><td>Perceive, estimate, plan, then move</td><td>Pixels in, actions out</td></tr><tr><th>Strengths</th><td>Each stage can be tested and explained; precise with known objects</td><td>Handles clutter, deformables and tasks that are hard to specify</td></tr><tr><th>Weak points</th><td>Errors pass down the chain; every stage needs engineering</td><td>Needs demonstrations; failures are harder to diagnose</td></tr><tr><th>Common today</th><td>Industrial pick-and-place, navigation</td><td>Household and general manipulation</td></tr></tbody></table></div><p>Most deployed systems mix the two: a learned policy for the manipulation itself, with explicit perception around it for safety, success checks and navigation.</p></section>
+
+<section class="note-sec split2">
+<div><h2 id="mistakes">Common mistakes</h2><ul><li><strong>Trusting a confidence score.</strong> Detectors are overconfident on images unlike their training data. Check on your own scenes.</li><li><strong>Forgetting calibration.</strong> A perfect detection in the camera frame is useless with a wrong camera pose.</li><li><strong>Expecting depth on glass and metal.</strong> Test the actual objects, not a matte stand-in.</li></ul></div>
+<div><h2 id="terms">Terms</h2><dl class="terms"><dt>Open vocabulary</dt><dd>Able to find or name things described in text, beyond a fixed list of classes.</dd><dt>Segmentation mask</dt><dd>The set of pixels that belong to one object.</dd><dt>Point cloud</dt><dd>A set of 3D points, usually one per pixel with a depth value.</dd><dt>6D pose</dt><dd>An object’s 3D position and 3D orientation.</dd><dt>SLAM</dt><dd>Building a map while tracking the robot’s position in it.</dd><dt>Occupancy grid</dt><dd>A map made of cells marked free or occupied.</dd></dl></div></section>
+
+        <section class="note-sec split2 more"><div><h2>In my work</h2><ul class="links"><li><a href="retail-applications.html">Retail applications: detection and planograms</a></li><li><a href="caseid.html">CaseID: detection and re-identification in a warehouse</a></li></ul></div><div><h2>Further reading</h2><ul class="links"><li><a href="https://arxiv.org/abs/2303.05499">Liu et al., 2023. Grounding DINO: Marrying DINO with Grounded Pre-Training for Open-Set Object Detection.</a></li><li><a href="https://arxiv.org/abs/2408.00714">Ravi et al., 2024. SAM 2: Segment Anything in Images and Videos.</a></li><li><a href="https://arxiv.org/abs/2406.09414">Yang et al., 2024. Depth Anything V2.</a></li><li><a href="https://arxiv.org/abs/2312.08344">Wen et al., 2023. FoundationPose: Unified 6D Pose Estimation and Tracking of Novel Objects.</a></li><li><a href="https://arxiv.org/abs/2308.04079">Kerbl et al., 2023. 3D Gaussian Splatting for Real-Time Radiance Field Rendering.</a></li></ul></div></section>
+        <nav class="pager" aria-label="Guide pages"><a href="guide-vision-language-models.html"><span>Previous</span>Vision-language models</a><a class="pnext" href="guide-robotics-fundamentals.html"><span>Next</span>Robotics fundamentals</a></nav>
+      </article>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div>
+        <p class="foot-title">Get in touch</p>
+        <p>Interesting problems in robotics and machine learning, collaboration, or questions about past work.</p>
+      </div>
+      <div class="foot-links"><a href="mailto:matthew.wnuk@gmail.com">matthew.wnuk@gmail.com</a><a href="https://www.linkedin.com/in/matthewwnuk">LinkedIn</a><a href="https://github.com/wnukmat">GitHub</a><a href="https://huggingface.co/mwnuk">Hugging Face</a><a href="resume.html">Resume</a></div>
+    </div>
+  </footer>
+</body>
+</html>

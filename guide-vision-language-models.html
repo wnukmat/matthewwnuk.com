@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Vision-language models: a guide to deep learning and robotics | Matthew Wnuk</title>
+  <meta name="description" content="How a language model is taught to read images, what the image costs, what these models get wrong, and how one becomes a robot policy.">
+  <link rel="canonical" href="https://www.matthewwnuk.com/guide-vision-language-models.html">
+  <meta property="og:site_name" content="Matthew Wnuk">
+  <meta property="og:title" content="Vision-language models: a guide to deep learning and robotics | Matthew Wnuk">
+  <meta property="og:description" content="How a language model is taught to read images, what the image costs, what these models get wrong, and how one becomes a robot policy.">
+  <meta property="og:url" content="https://www.matthewwnuk.com/guide-vision-language-models.html">
+  <meta property="og:image" content="https://www.matthewwnuk.com/img/headshot.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="site-name" href="./"><img src="favicon.svg" alt="" width="28" height="28">Matthew Wnuk</a>
+      <nav aria-label="Main">
+        <a href="./#work">Work</a>
+        <a href="guide.html" aria-current="page">Guide</a>
+        <a href="./#experience">Experience</a>
+        <a href="resume.html">Resume</a>
+        <a href="about.html">About</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+
+    <header class="case-head guide-head">
+      <div class="wrap">
+        <a class="back" href="guide.html">&larr; All topics</a>
+        <p class="eyebrow">Guide &middot; Models &middot; Topic 12 of 31</p>
+        <h1>Vision-language models</h1>
+        <p class="dek">How a language model is taught to read images, what the image costs, what these models get wrong, and how one becomes a robot policy.</p>
+        <p class="gmeta"><span>6 minute read</span><span class="assumes">Builds on: <a href="guide-attention.html">Attention in depth</a>, <a href="guide-contrastive-learning.html">Contrastive and multimodal learning</a>, <a href="guide-foundation-models.html">Foundation models and adaptation</a></span></p>
+      </div>
+    </header>
+    <div class="wrap note">
+      <aside class="toc card"><h2>In this note</h2><ol><li><a href="#what">What a vision-language model is</a></li><li><a href="#connect">Three ways to join vision and language</a></li><li><a href="#tokens">The image is the expensive part</a></li><li><a href="#training">How one is trained</a></li><li><a href="#outputs">Beyond text answers</a></li><li><a href="#limits">What they get wrong</a></li><li><a href="#robots">From a VLM to a robot policy</a></li><li><a href="#mistakes">Common mistakes</a></li></ol>
+        <h2>Key points</h2><ul class="keys"><li>A VLM is a language model with image patches added to its prompt.</li><li>Image tokens are the cost. Resolution and merging decide what the model can see and how fast it runs.</li><li>It brings knowledge of the world and is unreliable on counting, position and unfamiliar views.</li></ul></aside>
+      <article class="note-body">
+<section class="note-sec"><h2 id="what">What a vision-language model is</h2>
+
+<p>A <strong>vision-language model</strong>, or VLM, is a language model that can also read images. Give it a picture and a question and it writes an answer. It is one of the two backbones that robot foundation models are built on. The other, the diffusion model, is covered in <a href="guide-stable-diffusion.html">its own note</a>.</p>
+<p>A VLM is valuable to robotics for what it already knows. It has read a large part of the internet and seen billions of captioned images, so it arrives knowing what a mug is, what “left of” means, and that a drawer has to be opened before something is put in it. A robot policy built on it inherits all of that and only has to learn how to move.</p></section>
+
+<section class="note-sec"><h2 id="connect">Three ways to join vision and language</h2>
+
+<figure class="gfig card "><a class="zoom" href="img/guide/vlm_connect.png"><img src="img/guide/vlm_connect.png" width="1500" height="791" loading="lazy" alt="Three designs. Two encoders, matched: an image encoder and a text encoder each produce one vector, and the vectors are compared. A reader in between: a small module reads the image encoder’s output and passes a fixed, small set of tokens to a language model. One sequence: image patches pass through a projector and join the text tokens in one sequence read by the language model."></a><figcaption>The three families, in the order they appeared. Almost all current models, and almost all robot policies, use the third.</figcaption></figure><div class="tablewrap"><table class="gtable "><thead><tr><th></th><th>Two encoders</th><th>A reader in between</th><th>One sequence</th></tr></thead><tbody><tr><th>Image enters as</th><td>One vector</td><td>A small fixed set of tokens</td><td>Hundreds of patch tokens</td></tr><tr><th>Can generate text</th><td>No</td><td>Yes</td><td>Yes</td></tr><tr><th>New parts to train</th><td>Both encoders</td><td>The reader, and cross-attention layers</td><td>One small projector</td></tr><tr><th>Cost per image</th><td>Lowest</td><td>Low</td><td>Highest: the tokens fill the prompt</td></tr><tr><th>Fine spatial detail</th><td>Lost</td><td>Partly kept</td><td>Best kept</td></tr><tr><th>Used for</th><td>Retrieval, zero-shot labels</td><td>Many images or video on a budget</td><td>General assistants, robot policies</td></tr></tbody></table></div><p>The single-sequence design won on simplicity. It adds almost nothing to a language model, it reuses the language model’s attention to relate words to patches, and it improves automatically when either half is replaced with a better one. The note on <a href="guide-attention.html">attention</a> shows a real example of a word attending to the right patches.</p></section>
+
+<section class="note-sec"><h2 id="tokens">The image is the expensive part</h2>
+
+<figure class="gfig card "><a class="zoom" href="img/guide/vlm_tokens.png"><img src="img/guide/vlm_tokens.png" width="1500" height="603" loading="lazy" alt="Image tokens per image for six configurations on a log scale. 224 pixels with 14-pixel patches: 256. 448 pixels: 1,024. 896 pixels: 4,096. 448 pixels then merging two by two: 256. 896 pixels then merging four by four: 256. 384 pixels with three by three merging: 81."></a><figcaption>Tokens per image. Resolution multiplies them; merging neighbouring patches before the language model divides them again.</figcaption></figure>
+<p>A sentence is a few dozen tokens. An image is hundreds or thousands, and the language model’s cost grows faster than its token count. Every VLM design is therefore a decision about how many image tokens to spend, and the answer shapes what the model can see.</p><ul><li><strong>Low resolution.</strong> Cheap, and small objects and text vanish. A gripper’s fingertips can be a handful of pixels.</li><li><strong>High resolution.</strong> Sees detail, at four times the tokens for each doubling.</li><li><strong>Tiling.</strong> Cut a large image into tiles, encode each at the encoder’s native size, and add a low-resolution overview. Detail is kept and the token count multiplies.</li><li><strong>Merging and pooling.</strong> Combine each small block of neighbouring patch features into one token before the language model. The encoder still sees full resolution, and the language model pays for far fewer tokens.</li><li><strong>A reader.</strong> Compress to a fixed count regardless of resolution, at some loss of spatial precision.</li></ul><p>Robot policies sit at the frugal end. They need several cameras, many times a second, so they use low resolution or heavy merging, and often a compact model. The <a href="guide-deployment.html">deployment</a> note measures what each choice costs in time.</p></section>
+
+<section class="note-sec"><h2 id="training">How one is trained</h2>
+
+<figure class="gfig card "><a class="zoom" href="img/guide/vlm_stages.png"><img src="img/guide/vlm_stages.png" width="1500" height="600" loading="lazy" alt="Four stages in a row. Separate pretraining: the vision encoder on image and caption pairs and the language model on text. Alignment: train the projector on captioned images. Instruction tuning: many tasks at once. Robot data: add an action output and train on demonstrations."></a><figcaption>The usual sequence. Each stage is cheaper and uses less data than the one before it.</figcaption></figure>
+<p>The vision encoder and the language model are trained separately first, each on its own enormous dataset. The vision encoder is usually trained contrastively against captions, as the note on <a href="guide-contrastive-learning.html">contrastive learning</a> describes, which is why its features already line up with language. <strong>Alignment</strong> then trains only the projector, on captioned images, until image tokens are usable by the language model. <strong>Instruction tuning</strong> trains on a mixture of tasks phrased as instructions, with more of the model unfrozen.</p>
+<p>What gets frozen at each stage is a real decision. Freezing the vision encoder preserves its general features and limits how far it can adapt to, say, the view from a wrist camera. Unfreezing everything adapts fully and risks forgetting.</p></section>
+
+<section class="note-sec"><h2 id="outputs">Beyond text answers</h2>
+
+<p>A language model can only emit tokens, so every other output is written as tokens. Locations are the important case for robots. Some models add special location tokens to their vocabulary, a thousand or so values per axis, and a box becomes four of them. Others write coordinates as ordinary numbers or output points.</p>
+<figure class="gfig card "><a class="zoom" href="img/guide/vlm_detect.jpg"><img src="img/guide/vlm_detect.jpg" width="1500" height="784" loading="lazy" alt="The same robot camera frame twice. Asked to detect plate, the model draws correct boxes around both plates. Asked to detect mug, it draws one box on the robot’s gripper and none on the three mugs."></a><figcaption>Real output from a public vision-language model (PaliGemma) on a LIBERO frame. The boxes are decoded from the location tokens it wrote. It finds both plates and, asked for a mug, boxes the gripper.</figcaption></figure>
+<p>The same idea carries straight through to robot control. If a location can be a token, so can an action, and a VLM that writes action tokens is the simplest kind of robot policy.</p></section>
+
+<section class="note-sec"><h2 id="limits">What they get wrong</h2>
+
+<p>Asked about the same frame, two public models gave these answers. There are three mugs on the table, and the mug on the left is white and yellow.</p><div class="tablewrap"><table class="gtable "><thead><tr><th>Question</th><th>Model</th><th>Answer</th></tr></thead><tbody><tr><th>Describe the image</th><td>PaliGemma</td><td>“a robot’s hand picks up a cup and puts it on a saucer”</td></tr><tr><th>Describe the image</th><td>SmolVLM2</td><td>“A coffee maker is on a table with two cups and a plate.”</td></tr><tr><th>How many mugs are on the table?</th><td>PaliGemma</td><td>“couple”</td></tr><tr><th>How many mugs are on the table?</th><td>SmolVLM2</td><td>“There are two mugs on the table.”</td></tr><tr><th>What colour is the mug on the left?</th><td>PaliGemma</td><td>“red”</td></tr></tbody></table></div>
+<p>Each answer is fluent and each is wrong in a way that would matter to a robot. Both miscount. One takes the robot’s gripper for a coffee maker. The colour named belongs to a different mug. These are small models on a simulated image, and larger models do better, but the kinds of error are typical.</p><ul><li><strong>Counting and spatial relations.</strong> Left, right, behind and how many are consistently the weakest skills.</li><li><strong>Fine detail at low resolution.</strong> What the vision encoder discards, the language model cannot recover.</li><li><strong>Unfamiliar views.</strong> Wrist cameras, simulation and robot hardware are rare in web data.</li><li><strong>Confident invention.</strong> The model answers in the same tone whether or not it can see the thing.</li><li><strong>No sense of force or time.</strong> A single image says nothing about weight, friction or what happened a moment ago.</li></ul></section>
+
+<section class="note-sec"><h2 id="robots">From a VLM to a robot policy</h2>
+
+<p>Turning a VLM into a policy means giving it a way to output actions, and there are three ways in use.</p><ul><li><strong>Action tokens.</strong> Write each action as tokens from the vocabulary and train on demonstrations. Nothing is added to the architecture.</li><li><strong>An action head.</strong> Attach a small network that reads the VLM’s internal features and generates continuous actions, usually by flow matching. The VLM’s language abilities are left largely intact.</li><li><strong>A planner above a policy.</strong> Leave the VLM as it is and have it name sub-tasks for a separate low-level policy.</li></ul><p>A further practice is <strong>co-training</strong>: continuing to train on web image-and-text tasks alongside the robot data, so that learning to act does not erase what the model knew about the world. The note on <a href="guide-robot-policies.html">robot policies</a> covers all of these in detail.</p></section>
+
+<section class="note-sec split2">
+<div><h2 id="mistakes">Common mistakes</h2><ul><li><strong>Choosing the resolution last.</strong> It decides what the model can see and how fast it runs. Decide it first.</li><li><strong>Trusting a description.</strong> Check counts, colours and positions against the image before acting on them.</li><li><strong>Fine-tuning on robot data alone.</strong> The model’s general knowledge erodes. Mix in the data it was built on.</li></ul></div>
+<div><h2 id="terms">Terms</h2><dl class="terms"><dt>Vision-language model</dt><dd>A language model that takes images as well as text as input.</dd><dt>Projector</dt><dd>The small layer that maps image features into the language model’s token space.</dd><dt>Alignment</dt><dd>The training stage that teaches a language model to use image tokens.</dd><dt>Instruction tuning</dt><dd>Training on many tasks phrased as instructions.</dd><dt>Location token</dt><dd>A vocabulary entry that stands for a coordinate, used to write boxes and points.</dd><dt>Co-training</dt><dd>Training on robot data and web data together.</dd></dl></div></section>
+
+        <section class="note-sec split2 more"><div><h2>Further reading</h2><ul class="links"><li><a href="https://arxiv.org/abs/2103.00020">Radford et al., 2021. Learning Transferable Visual Models From Natural Language Supervision (CLIP).</a></li><li><a href="https://arxiv.org/abs/2204.14198">Alayrac et al., 2022. Flamingo: a Visual Language Model for Few-Shot Learning.</a></li><li><a href="https://arxiv.org/abs/2301.12597">Li et al., 2023. BLIP-2: Bootstrapping Language-Image Pre-training with Frozen Image Encoders and Large Language Models.</a></li><li><a href="https://arxiv.org/abs/2304.08485">Liu et al., 2023. Visual Instruction Tuning (LLaVA).</a></li><li><a href="https://arxiv.org/abs/2407.07726">Beyer et al., 2024. PaliGemma: A versatile 3B VLM for transfer.</a></li><li><a href="https://arxiv.org/abs/2504.05299">Marafioti et al., 2025. SmolVLM: Redefining small and efficient multimodal models.</a></li><li><a href="https://arxiv.org/abs/2307.15818">Brohan et al., 2023. RT-2: Vision-Language-Action Models Transfer Web Knowledge to Robotic Control.</a></li></ul></div></section>
+        <nav class="pager" aria-label="Guide pages"><a href="guide-foundation-models.html"><span>Previous</span>Foundation models and adaptation</a><a class="pnext" href="guide-perception-and-3d.html"><span>Next</span>Perception and 3D</a></nav>
+      </article>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div>
+        <p class="foot-title">Get in touch</p>
+        <p>Interesting problems in robotics and machine learning, collaboration, or questions about past work.</p>
+      </div>
+      <div class="foot-links"><a href="mailto:matthew.wnuk@gmail.com">matthew.wnuk@gmail.com</a><a href="https://www.linkedin.com/in/matthewwnuk">LinkedIn</a><a href="https://github.com/wnukmat">GitHub</a><a href="https://huggingface.co/mwnuk">Hugging Face</a><a href="resume.html">Resume</a></div>
+    </div>
+  </footer>
+</body>
+</html>

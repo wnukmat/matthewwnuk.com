@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Attention in depth: a guide to deep learning and robotics | Matthew Wnuk</title>
+  <meta name="description" content="One operation, many forms: self, cross and shared attention, heads and masks, what it costs, and the linear recurrent variants.">
+  <link rel="canonical" href="https://www.matthewwnuk.com/guide-attention.html">
+  <meta property="og:site_name" content="Matthew Wnuk">
+  <meta property="og:title" content="Attention in depth: a guide to deep learning and robotics | Matthew Wnuk">
+  <meta property="og:description" content="One operation, many forms: self, cross and shared attention, heads and masks, what it costs, and the linear recurrent variants.">
+  <meta property="og:url" content="https://www.matthewwnuk.com/guide-attention.html">
+  <meta property="og:image" content="https://www.matthewwnuk.com/img/headshot.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="site-name" href="./"><img src="favicon.svg" alt="" width="28" height="28">Matthew Wnuk</a>
+      <nav aria-label="Main">
+        <a href="./#work">Work</a>
+        <a href="guide.html" aria-current="page">Guide</a>
+        <a href="./#experience">Experience</a>
+        <a href="resume.html">Resume</a>
+        <a href="about.html">About</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+
+    <header class="case-head guide-head">
+      <div class="wrap">
+        <a class="back" href="guide.html">&larr; All topics</a>
+        <p class="eyebrow">Guide &middot; Foundations &middot; Topic 4 of 31</p>
+        <h1>Attention in depth</h1>
+        <p class="dek">One operation, many forms: self, cross and shared attention, heads and masks, what it costs, and the linear recurrent variants.</p>
+        <p class="gmeta"><span>13 minute read</span><span class="assumes">Builds on: <a href="guide-transformer.html">The transformer</a></span></p>
+      </div>
+    </header>
+    <div class="wrap note">
+      <aside class="toc card"><h2>In this note</h2><ol><li><a href="#what">What attention computes</a></li><li><a href="#real">What it looks like in a real model</a></li><li><a href="#heads">Multi-head attention</a></li><li><a href="#masks">Masks: who may look at whom</a></li><li><a href="#kinds">Self, cross and shared attention</a></li><li><a href="#position">Position</a></li><li><a href="#cost">What attention costs</a></li><li><a href="#linear">Linear attention, and attention as a recurrence</a></li><li><a href="#gdn">The delta rule and Gated DeltaNet</a></li><li><a href="#choose">Choosing between them</a></li><li><a href="#mistakes">Common mistakes</a></li></ol>
+        <h2>Key points</h2><ul class="keys"><li>Every kind of attention is the same lookup. They differ in where queries, keys and values come from, and in the mask.</li><li>Standard attention costs time that grows with the square of the sequence, and remembers everything.</li><li>Linear recurrent forms cost the same per token forever, and remember a fixed-size summary.</li></ul></aside>
+      <article class="note-body">
+<section class="note-sec"><h2 id="what">What attention computes</h2>
+
+<p>Attention is one operation, and everything else in this note is a variation on it. Each token asks a question, every token offers an answer, and each token leaves with a blend of the answers that matched its question best.</p>
+<p class="formula">Attention(Q, K, V) = softmax( Q K<sup>T</sup> ÷ √d ) V</p>
+<p>Take a sequence of n tokens, each a vector of width d. Three learned matrices turn every token into three vectors: a <strong>query</strong> (what am I looking for?), a <strong>key</strong> (what do I contain?) and a <strong>value</strong> (what do I pass on?). Stacked, these are Q, K and V.</p><ul><li><strong>Q K<sup>T</sup></strong> is an n × n table of scores: the dot product of every query with every key. A large score means a key matches a query.</li><li><strong>÷ √d</strong> keeps the scores at a steady size. Dot products grow with the width, and without the division the softmax would put all its weight on one token and stop passing gradient.</li><li><strong>softmax</strong> turns each row of scores into positive weights that sum to one. Each row is one token deciding where to look.</li><li><strong>× V</strong> replaces each token with the weighted average of the values.</li></ul>
+<p>Two properties follow directly. Attention is a <strong>soft lookup</strong>: a dictionary where every entry answers a little, in proportion to how well its key matches. And its output is always an average of existing values, so attention can move information between tokens and cannot create any. Creating is the job of the MLP that follows it in every block, as the note on <a href="guide-transformer.html">the transformer</a> describes.</p></section>
+
+<section class="note-sec"><h2 id="real">What it looks like in a real model</h2>
+
+<figure class="gfig card "><a class="zoom" href="img/guide/attn_words.jpg"><img src="img/guide/attn_words.jpg" width="1500" height="448" loading="lazy" alt="A robot camera image of two mugs and two plates on a table, followed by three attention maps over the same image for the words white, mug and plate. The map for plate lights up both plates. The map for mug lights up the area around the mugs. The map for white is concentrated on the left plate and mug."></a><figcaption>Real attention weights from a public vision-language model (PaliGemma) given this image and the instruction “put the white mug on the left plate”. Each map shows where one word’s token looks among the 256 image tokens, for one head in layer 10 of 18.</figcaption></figure>
+<p>In this model the image is 256 tokens and the instruction follows it in the same sequence, so a word can attend to any patch. The word “plate” sends 96% of its attention to image tokens, and it lands on the two plates. “Mug” sends 91% and lands around the mugs.</p>
+<p>Two cautions. This head was chosen because it is readable; most of the 144 heads in the model are not, and several put their weight on a few background patches that the model appears to use as scratch space. And a map shows where information was read from, not what was done with it. Attention maps are evidence about a model, not an explanation of it.</p></section>
+
+<section class="note-sec"><h2 id="heads">Multi-head attention</h2>
+
+<p>One attention operation can follow one kind of relationship at a time. So the width d is split into h equal slices, called <strong>heads</strong>, each with its own query, key and value matrices. The heads run in parallel on the same tokens, and their outputs are joined back together. Eight heads of width d ÷ 8 cost about the same as one head of width d.</p>
+<figure class="gfig card "><a class="zoom" href="img/guide/attn_heads.png"><img src="img/guide/attn_heads.png" width="1500" height="864" loading="lazy" alt="Eight small grids, one per attention head, each showing how the eight words of the instruction attend to one another in the same layer. One head is a clean diagonal: each word attends to itself. One head sends every word’s attention to the word mug. The others are diffuse."></a><figcaption>The same real model, one layer, all eight heads, restricted to the words of the instruction. Each row is one word deciding where to look. Head 4 attends to the token itself. In head 6 almost every word looks at “mug”.</figcaption></figure>
+<p>The heads have plainly learned different jobs. One carries each token’s own content forward. One gathers everything toward the object of the sentence. Others spread their weight thinly, which often means they are doing their work on the image tokens, outside this crop.</p>
+<p>A common variation changes how heads share parameters. In <strong>grouped-query attention</strong>, several query heads share one set of keys and values. Quality changes little, and the stored keys and values, which dominate memory during generation, shrink by the sharing factor.</p></section>
+
+<section class="note-sec"><h2 id="masks">Masks: who may look at whom</h2>
+
+<figure class="gfig card "><a class="zoom" href="img/guide/attn_masks.png"><img src="img/guide/attn_masks.png" width="1500" height="604" loading="lazy" alt="Three square grids showing which tokens can attend to which. Bidirectional: every cell is filled. Causal: only the lower triangle is filled, so a token sees itself and earlier tokens. Blocks: image and text tokens see only each other, and the action tokens in the last rows see everything."></a><figcaption>Three masks for a sequence of eight image and text tokens followed by four action tokens. A filled cell means the row’s token may attend to the column’s token.</figcaption></figure>
+<p>A mask is applied by adding a very large negative number to the forbidden scores before the softmax, so their weights become zero. The mask is what distinguishes the main kinds of transformer.</p><ul><li><strong>Bidirectional.</strong> Every token sees every other. Used by encoders, where the whole input is available at once.</li><li><strong>Causal.</strong> A token sees only itself and earlier tokens. This is what lets a model be trained to predict the next token at every position in one pass, and then generate one token at a time.</li><li><strong>Block masks.</strong> Robot policies combine the two. The images and instruction see only each other, so their result does not depend on the actions and can be computed once and stored. The action tokens see everything. The real model above uses exactly this for its image and instruction tokens, which is why the grids in the previous figure are not triangular.</li></ul></section>
+
+<section class="note-sec"><h2 id="kinds">Self, cross and shared attention</h2>
+
+<p>The formula does not say where the queries, keys and values come from. Three arrangements are in common use.</p>
+<figure class="gfig card "><a class="zoom" href="img/guide/attn_kinds.png"><img src="img/guide/attn_kinds.png" width="1500" height="753" loading="lazy" alt="Three diagrams. Self-attention: one row of tokens goes through attention and comes out updated. Cross-attention: queries come from one sequence and keys and values from another, and only the first sequence is updated. Shared attention: two groups of tokens, each with its own weights before and after, meet in one attention operation over all the tokens together."></a><figcaption>Where the queries, keys and values come from. Colour marks which sequence a token belongs to and which weights process it.</figcaption></figure><div class="tablewrap"><table class="gtable "><thead><tr><th></th><th>Self-attention</th><th>Cross-attention</th><th>Shared attention</th></tr></thead><tbody><tr><th>Queries from</th><td>The sequence itself</td><td>Sequence A</td><td>Both streams</td></tr><tr><th>Keys and values from</th><td>The sequence itself</td><td>Sequence B</td><td>Both streams</td></tr><tr><th>What is updated</th><td>Every token</td><td>Only A; B is read-only</td><td>Both, unless a mask prevents it</td></tr><tr><th>Score table</th><td>n × n</td><td>n<sub>A</sub> × n<sub>B</sub></td><td>(n<sub>A</sub> + n<sub>B</sub>)²</td></tr><tr><th>Weights</th><td>One set</td><td>A’s layers plus a cross-attention layer</td><td>A separate set for each stream</td></tr><tr><th>Used for</th><td>Almost everything</td><td>Conditioning: an image model reading text, an action network reading a backbone’s features</td><td>A small action network running beside a large vision-language model; text and image streams in image generators</td></tr></tbody></table></div>
+<p><strong>Cross-attention</strong> is the classic way to condition one model on another. The memory side is computed once and can be cached, the cost is set by the smaller sequence, and information flows one way.</p>
+<p><strong>Shared attention</strong>, also called joint attention, keeps two streams of tokens with their own weights and lets them meet only inside the attention operation, where their tokens are concatenated. Each stream keeps layers suited to its own kind of data, and the streams can differ in size as long as their attention heads match. Several robot policies attach their action network this way: its tokens attend to the vision-language model’s tokens layer by layer, while a block mask stops the vision-language tokens from looking back.</p>
+<p>The simplest alternative to both is to put everything in one sequence with one set of weights. That is what a vision-language model does with image and text tokens, and it works when the token types are similar enough to share layers.</p></section>
+
+<section class="note-sec"><h2 id="position">Position</h2>
+
+<p>Nothing in the formula depends on where a token is. Shuffle the input and the output shuffles with it. Order therefore has to be supplied, and there are two families of method.</p><ul><li><strong>Added to the token.</strong> A vector for each position, learned or computed, is added to the token before the first layer. Simple, and tied to the lengths seen in training.</li><li><strong>Applied inside attention.</strong> Rotary position encoding rotates each query and key by an angle proportional to its position. The dot product of two rotated vectors then depends on the difference in their positions, so the score reflects how far apart two tokens are. It extends naturally to two axes for images and three for video, and it is the common choice in current models.</li></ul></section>
+
+<section class="note-sec"><h2 id="cost">What attention costs</h2>
+
+<figure class="gfig card "><a class="zoom" href="img/guide/attn_cost.png"><img src="img/guide/attn_cost.png" width="1500" height="654" loading="lazy" alt="Two plots against the number of tokens on log axes. Time for one layer: standard attention rises steeply, from 0.5 milliseconds at 4,096 tokens to 23 at 32,768, while linear attention stays near 0.1 milliseconds and reaches 0.7. Extra memory for one layer: both rise in proportion to the number of tokens."></a><figcaption>Measured for this note on a desktop GPU: one attention layer with eight heads, at 16-bit precision. Standard attention took 0.47 ms at 4,096 tokens and 22.8 ms at 32,768. Linear attention took 0.10 ms and 0.73 ms.</figcaption></figure>
+<p>The score table has n × n entries, so the work grows with the square of the sequence length. In the measurement, eight times as many tokens cost 49 times as long. That is the reason video and long histories are expensive, and the reason so much effort goes into reducing token counts, as the <a href="guide-deployment.html">deployment</a> note shows.</p>
+<p>Memory is a different story, and the right-hand panel shows it. Modern implementations never store the whole table. They compute it in blocks that fit in the processor’s fast memory and discard each block once it has been used, a technique published as FlashAttention. The result is exact, the memory grows only in proportion to n, and the time still grows with the square.</p><ul><li><strong>The key-value cache.</strong> When a model generates one token at a time, the keys and values of earlier tokens do not change. They are stored, and each new token computes only its own row of scores. The cache grows with the sequence, the layers and the heads, and it is the main memory cost of long generation.</li><li><strong>Fewer tokens.</strong> Merge neighbouring tokens, pool them, or attend only within a local window.</li><li><strong>A different operation.</strong> Replace the softmax with something that does not need the table at all. That is the next section.</li></ul></section>
+
+<section class="note-sec"><h2 id="linear">Linear attention, and attention as a recurrence</h2>
+
+<p>The n × n table exists because the softmax has to see a whole row of scores before it can normalise them. Drop the softmax, measure similarity with a plain dot product of transformed queries and keys, and the order of the sums can be changed:</p>
+<p class="formula">output<sub>i</sub> = Σ<sub>j</sub> ( q<sub>i</sub> · k<sub>j</sub> ) v<sub>j</sub> = ( Σ<sub>j</sub> v<sub>j</sub> k<sub>j</sub><sup>T</sup> ) q<sub>i</sub> = S q<sub>i</sub></p>
+<p>The bracket is a single d × d matrix, S, that does not depend on which token is asking. Compute it once and every token gets its answer with one matrix multiplication. The cost is proportional to n, not n².</p>
+<p>With a causal mask, token t may only use the tokens before it, and S becomes a running sum:</p>
+<p class="formula">S<sub>t</sub> = S<sub>t−1</sub> + v<sub>t</sub> k<sub>t</sub><sup>T</sup>&nbsp;&nbsp;&nbsp;&nbsp;output<sub>t</sub> = S<sub>t</sub> q<sub>t</sub></p>
+<p>This is a recurrent network. The state S has a fixed size, each new token costs the same however long the sequence, and nothing like a key-value cache grows in the background. Read the other way, S is an <strong>associative memory</strong>: writing adds the pair (key, value), and reading with a query returns the values stored under similar keys.</p>
+<p>The price is in that fixed size. Standard attention keeps every past token and can retrieve any one of them exactly. A d × d state holds about d clean associations, and beyond that they blur into one another.</p></section>
+
+<section class="note-sec"><h2 id="gdn">The delta rule and Gated DeltaNet</h2>
+
+<p>A plain running sum can only add. If the same key arrives again with a new value, both values are now stored under it and a read returns their mixture. Two refinements fix this, and they are the core of the current linear recurrent designs.</p>
+<p>The <strong>delta rule</strong> writes the correction instead of the value. Before storing, it reads what the memory already returns for this key and removes it:</p>
+<p class="formula">S<sub>t</sub> = S<sub>t−1</sub> ( I − β<sub>t</sub> k<sub>t</sub> k<sub>t</sub><sup>T</sup> ) + β<sub>t</sub> v<sub>t</sub> k<sub>t</sub><sup>T</sup></p>
+<p>The first term erases the old content along the direction of the key, by an amount β that the network chooses per token. The second writes the new value there. <strong>Gated DeltaNet</strong> adds one more learned number per token, a gate α between 0 and 1 that scales the whole previous state:</p>
+<p class="formula">S<sub>t</sub> = S<sub>t−1</sub> ( α<sub>t</sub> ( I − β<sub>t</sub> k<sub>t</sub> k<sub>t</sub><sup>T</sup> ) ) + β<sub>t</sub> v<sub>t</sub> k<sub>t</sub><sup>T</sup></p>
+<p>With α near 1 it behaves as the delta rule and replaces one association precisely. With α near 0 it wipes the memory, which is what is wanted at a change of context. The network learns when to do which.</p>
+<figure class="gfig card "><a class="zoom" href="img/guide/attn_memory.png"><img src="img/guide/attn_memory.png" width="1500" height="614" loading="lazy" alt="Three panels from a memory experiment with a 64 by 64 state. Capacity: recall accuracy against the number of pairs stored, falling from near 1.0 to about 0.7 at 64 pairs for both rules, and lower for the delta rule beyond that. After an update: recall of the new value is 0.63 with plain addition and 0.89 with the delta rule. Old against recent: recall against how many writes ago a pair was stored, falling more steeply with a forgetting gate."></a><figcaption>A small experiment run for this note: random key and value pairs written into a 64 × 64 state. Left: recall falls as more pairs are stored than the state can hold. Middle: sixteen keys are given new values. Right: recall against age, with and without a constant gate of 0.97.</figcaption></figure>
+<p>The experiment shows what each part buys, and it is not raw capacity. With fewer pairs than the state’s width, both rules recall well, and once the memory is overfull the delta rule is the worse of the two, because each correction disturbs its neighbours. Its advantage is in the middle panel. When stored keys are given new values, plain addition returns a blend of old and new and recalls the new value with accuracy 0.63. The delta rule replaces the old value and reaches 0.89. The right-hand panel shows the gate doing its job: recent pairs are recalled perfectly either way, and with the gate the oldest have been cleared to make room.</p>
+<p>State-space models such as Mamba are close relatives. They too carry a fixed-size state forward with learned, input-dependent rules for what to keep.</p></section>
+
+<section class="note-sec"><h2 id="choose">Choosing between them</h2>
+<div class="tablewrap"><table class="gtable "><thead><tr><th>Situation</th><th>Reach for</th><th>Why</th></tr></thead><tbody><tr><th>Sequences up to a few thousand tokens</th><td>Standard attention</td><td>Exact retrieval of any token, and the cost is acceptable</td></tr><tr><th>One model conditioning another</th><td>Cross-attention</td><td>One-way, cacheable, cost set by the smaller side</td></tr><tr><th>A small specialist beside a large general model</th><td>Shared attention with a block mask</td><td>Each keeps its own weights; the large side can be cached</td></tr><tr><th>Generation, one token at a time</th><td>Causal attention with a key-value cache</td><td>Each new token costs one row, not a whole table</td></tr><tr><th>Very long or unbounded streams</th><td>Linear recurrent layers, often mixed with some standard attention</td><td>Constant cost per token and no growing cache</td></tr><tr><th>Long video and world models</th><td>Compression first, then a mix of the above</td><td>Token counts are the dominant cost</td></tr></tbody></table></div><p>The trade is always the same one. Standard attention remembers everything and pays for it in time. Recurrent forms pay a fixed price and remember a summary. Mixed stacks, with mostly recurrent layers and a few standard attention layers, try to take the cheap summary most of the time and the exact lookup where it matters.</p></section>
+
+<section class="note-sec split2">
+<div><h2 id="mistakes">Common mistakes</h2><ul><li><strong>Reading an attention map as an explanation.</strong> It shows where a head read from. Confirm any conclusion by removing the input and seeing whether the output changes.</li><li><strong>Forgetting the mask when caching.</strong> A cached result is valid only if those tokens could not see what came later.</li><li><strong>Expecting linear attention to be a free replacement.</strong> It trades exact recall for a fixed-size summary. Check the task needs only the summary.</li><li><strong>Counting only time.</strong> During generation the key-value cache, not the arithmetic, is often what runs out.</li></ul></div>
+<div><h2 id="terms">Terms</h2><dl class="terms"><dt>Query, key, value</dt><dd>The three vectors each token produces: what it seeks, what it offers to be matched on, and what it passes on.</dd><dt>Head</dt><dd>One of several attention operations run in parallel on slices of the token’s width.</dd><dt>Mask</dt><dd>A rule fixing which tokens may attend to which.</dd><dt>Cross-attention</dt><dd>Attention in which queries come from one sequence and keys and values from another.</dd><dt>Shared attention</dt><dd>Two token streams with separate weights that attend over their combined tokens.</dd><dt>Key-value cache</dt><dd>Stored keys and values of earlier tokens, reused while generating.</dd><dt>Linear attention</dt><dd>Attention without the softmax, computable in time proportional to the sequence length.</dd><dt>Delta rule</dt><dd>A memory update that removes what is stored under a key before writing the new value.</dd></dl></div></section>
+
+        <section class="note-sec split2 more"><div><h2>Further reading</h2><ul class="links"><li><a href="https://arxiv.org/abs/1706.03762">Vaswani et al., 2017. Attention Is All You Need.</a></li><li><a href="https://arxiv.org/abs/2205.14135">Dao et al., 2022. FlashAttention: Fast and Memory-Efficient Exact Attention with IO-Awareness.</a></li><li><a href="https://arxiv.org/abs/2104.09864">Su et al., 2021. RoFormer: Enhanced Transformer with Rotary Position Embedding.</a></li><li><a href="https://arxiv.org/abs/2305.13245">Ainslie et al., 2023. GQA: Training Generalized Multi-Query Transformer Models from Multi-Head Checkpoints.</a></li><li><a href="https://arxiv.org/abs/2006.16236">Katharopoulos et al., 2020. Transformers are RNNs: Fast Autoregressive Transformers with Linear Attention.</a></li><li><a href="https://arxiv.org/abs/2102.11174">Schlag et al., 2021. Linear Transformers Are Secretly Fast Weight Programmers.</a></li><li><a href="https://arxiv.org/abs/2412.06464">Yang et al., 2024. Gated Delta Networks: Improving Mamba2 with Delta Rule.</a></li><li><a href="https://arxiv.org/abs/2312.00752">Gu and Dao, 2023. Mamba: Linear-Time Sequence Modeling with Selective State Spaces.</a></li><li><a href="https://arxiv.org/abs/2309.16588">Darcet et al., 2023. Vision Transformers Need Registers.</a></li><li><a href="https://arxiv.org/abs/2410.24164">Black et al., 2024. &pi;<sub>0</sub>: A Vision-Language-Action Flow Model for General Robot Control.</a></li></ul></div></section>
+        <nav class="pager" aria-label="Guide pages"><a href="guide-transformer.html"><span>Previous</span>The transformer</a><a class="pnext" href="guide-sequence-to-sequence.html"><span>Next</span>Sequence-to-sequence models</a></nav>
+      </article>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div>
+        <p class="foot-title">Get in touch</p>
+        <p>Interesting problems in robotics and machine learning, collaboration, or questions about past work.</p>
+      </div>
+      <div class="foot-links"><a href="mailto:matthew.wnuk@gmail.com">matthew.wnuk@gmail.com</a><a href="https://www.linkedin.com/in/matthewwnuk">LinkedIn</a><a href="https://github.com/wnukmat">GitHub</a><a href="https://huggingface.co/mwnuk">Hugging Face</a><a href="resume.html">Resume</a></div>
+    </div>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Senses beyond vision: a guide to deep learning and robotics | Matthew Wnuk</title>
+  <meta name="description" content="Touch, force, sound and body state: what each tells a robot, and how they are combined in one policy.">
+  <link rel="canonical" href="https://www.matthewwnuk.com/guide-senses.html">
+  <meta property="og:site_name" content="Matthew Wnuk">
+  <meta property="og:title" content="Senses beyond vision: a guide to deep learning and robotics | Matthew Wnuk">
+  <meta property="og:description" content="Touch, force, sound and body state: what each tells a robot, and how they are combined in one policy.">
+  <meta property="og:url" content="https://www.matthewwnuk.com/guide-senses.html">
+  <meta property="og:image" content="https://www.matthewwnuk.com/img/headshot.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="site-name" href="./"><img src="favicon.svg" alt="" width="28" height="28">Matthew Wnuk</a>
+      <nav aria-label="Main">
+        <a href="./#work">Work</a>
+        <a href="guide.html" aria-current="page">Guide</a>
+        <a href="./#experience">Experience</a>
+        <a href="resume.html">Resume</a>
+        <a href="about.html">About</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+
+    <header class="case-head guide-head">
+      <div class="wrap">
+        <a class="back" href="guide.html">&larr; All topics</a>
+        <p class="eyebrow">Guide &middot; Robots &middot; Topic 24 of 31</p>
+        <h1>Senses beyond vision</h1>
+        <p class="dek">Touch, force, sound and body state: what each tells a robot, and how they are combined in one policy.</p>
+        <p class="gmeta"><span>10 minute read</span><span class="assumes">Builds on: <a href="guide-robot-learning-basics.html">Robot learning basics</a></span></p>
+      </div>
+    </header>
+    <div class="wrap note">
+      <aside class="toc card"><h2>In this note</h2><ol><li><a href="#why">Vision is not enough</a></li><li><a href="#each">What each sense tells the robot</a></li><li><a href="#examples">What the signals look like</a></li><li><a href="#audio">A closer look at sound</a></li><li><a href="#rates">Different senses, different clocks</a></li><li><a href="#ingest">How a model takes each sense in</a></li><li><a href="#deadlines">Deadlines: how fast is fast enough</a></li><li><a href="#bands">Touch has two bands</a></li><li><a href="#fusion">Combining senses in one policy</a></li><li><a href="#mistakes">Common mistakes</a></li></ol>
+        <h2>Key points</h2><ul class="keys"><li>Cameras lead until contact. After that, force, touch and sound carry the information.</li><li>Physics sets the deadline: a slip must be answered in tens of milliseconds, faster than a chunked policy replans.</li><li>A sense that was added is not a sense that is used. Test with it removed.</li></ul></aside>
+      <article class="note-body">
+<section class="note-sec"><h2 id="why">Vision is not enough</h2>
+
+<p>Robot policies are built around cameras, and for reaching toward things that is sufficient. Once the hand closes, the camera’s view is blocked and the questions change: is it in my grip, is it slipping, has it touched down? Those are answered by other senses.</p>
+<figure class="gfig card "><a class="zoom" href="img/guide/senses_timeline.png"><img src="img/guide/senses_timeline.png" width="1500" height="614" loading="lazy" alt="A grid of six senses against five phases of a pick-and-place: approach, contact, grasp and lift, carry, place. Cameras are decisive during approach. Force, torque and touch are decisive from contact onward. Sound is decisive at placement."></a><figcaption>A schematic of which sense carries the information in each phase of picking something up and putting it down. The ratings are a judgement, not a measurement.</figcaption></figure></section>
+
+<section class="note-sec"><h2 id="each">What each sense tells the robot</h2>
+<div class="tablewrap"><table class="gtable "><thead><tr><th>Sense</th><th>What it measures</th><th>Good for</th><th>Watch out for</th></tr></thead><tbody><tr><th>Body state (proprioception)</th><td>Joint angles and speeds, gripper opening</td><td>Knowing where the robot is; always available and precise</td><td>Policies lean on it and ignore the cameras</td></tr><tr><th>Joint torque and motor current</th><td>How hard each joint is working</td><td>Detecting contact and load with no extra sensor</td><td>Noisy; mixes contact with the arm’s own weight and friction</td></tr><tr><th>Wrist force and torque</th><td>The total push and twist at the wrist</td><td>Insertion, wiping, pressing, knowing when to stop</td><td>Reports one total, not where contact is; drifts and needs zeroing</td></tr><tr><th>Touch, camera-based</th><td>A fine image of the fingertip’s skin deforming</td><td>Shape, texture and slip at the contact</td><td>Bulky; the skin wears; units differ from one another</td></tr><tr><th>Touch, pressure arrays</th><td>Pressure over a grid of cells</td><td>Covering fingers and palms; contact location</td><td>Coarse; says little about sideways force</td></tr><tr><th>Sound</th><td>Vibration through air, or through the gripper with a contact microphone</td><td>Contact events, slip, pouring, clicking into place</td><td>Motor and room noise; differs between sites</td></tr><tr><th>Inertial sensor</th><td>Acceleration and rate of turning</td><td>Balance and base motion on legged and mobile robots</td><td>Drifts when integrated over time</td></tr><tr><th>Depth and lidar</th><td>Distance to surfaces</td><td>Geometry, obstacles, navigation</td><td>Shiny, dark and transparent objects</td></tr></tbody></table></div><p>Less common inputs include thermal cameras, event cameras that report only changes in brightness, and radar. They solve specific problems and bring little shared data or tooling with them.</p></section>
+
+<section class="note-sec"><h2 id="examples">What the signals look like</h2>
+
+<p>It is easier to reason about a sense after seeing its raw data. These are real recordings.</p>
+<figure class="gfig card "><a class="zoom" href="img/guide/touch_press.jpg"><img src="img/guide/touch_press.jpg" width="1456" height="1139" loading="lazy" alt="Three moments of one press at 5, 17 and 30 newtons. Top row: images from a camera inside a gel fingertip, showing the gel surface deforming more as force rises. Middle row: a 12 by 12 pressure array lighting up more cells. Bottom: pressing force and sideways force from the wrist sensor over 46 seconds, with the three moments marked."></a><figcaption>One recorded press seen by three sensors at once, from the public TaF tactile-force dataset. Top: the camera inside a gel fingertip. Middle: a 12 × 12 pressure array. Bottom: the wrist force sensor.</figcaption></figure>
+<p>The three sensors answer different questions about the same contact. The gel camera shows the shape pressing into the finger in fine detail. The pressure array shows where the contact is, coarsely. The force sensor gives one clean number for how hard, and nothing about where.</p>
+<figure class="gfig card "><a class="zoom" href="img/guide/body_state.png"><img src="img/guide/body_state.png" width="1500" height="815" loading="lazy" alt="Three plots over a 21-second episode: the hand&#x27;s position in three axes in centimetres, its rotation in three axes in degrees, and the gripper opening, which closes at about 4 seconds, opens at about 10 and closes again at about 16."></a><figcaption>Body state through one real robot episode: where the hand is, how it is turned, and how far the gripper is open. This robot reports 8 numbers per step.</figcaption></figure>
+<p>Body state is the plainest signal of all: a few smooth numbers per step. That is why it is so easy for a policy to lean on.</p></section>
+
+<section class="note-sec"><h2 id="audio">A closer look at sound</h2>
+
+<figure class="gfig card "><a class="zoom" href="img/guide/spectrograms.jpg"><img src="img/guide/spectrograms.jpg" width="1500" height="895" loading="lazy" alt="Two real sounds, each shown as a waveform above a spectrogram. Water poured into a mug is a broad wash of energy across all pitches that swells as the mug fills. Knocking on wood is three sharp bursts, each a set of horizontal bands that die away in a fraction of a second."></a><figcaption>Two public-domain recordings. The waveform on top is what the microphone records. The spectrogram below shows the same sound as pitch against time, with brightness for loudness. A continuous flow and a sharp contact look nothing alike.</figcaption></figure>
+<p>A <strong>spectrogram</strong> is the standard way to look at sound and to feed it to a model. The knock shows why. In the waveform the three knocks are spikes. In the spectrogram each is a column of bands that rings and fades, a pattern as recognisable as an object in a photo.</p>
+<p>Sound is the newest of these in robot learning and the cheapest to add. A contact microphone on the gripper hears what the fingers do: the scrape of a spatula under food, the click of a plug seating, the change in pitch as a container fills. These are events a camera cannot see, and they arrive at the moment they happen.</p>
+<p>The published work on this is direct about the conditions. Sound helps most where vision is ambiguous, in contact-rich tasks, and it has to be collected with the same microphone placement that the robot will use. Background noise in deployment differs from the collection site, so it is added during training as augmentation.</p></section>
+
+<section class="note-sec"><h2 id="rates">Different senses, different clocks</h2>
+
+<figure class="gfig card "><a class="zoom" href="img/guide/sensor_rates.png"><img src="img/guide/sensor_rates.png" width="1500" height="573" loading="lazy" alt="Typical reading rates on a log scale. Cameras and camera-based touch sensors report tens of times a second. Inertial sensors, joint sensors and wrist force sensors report hundreds to thousands of times a second. Microphones report tens of thousands of times a second. A shaded band marks the 10 to 50 times a second at which a learned policy runs."></a><figcaption>Typical ranges. A learned policy runs at the rate of the slowest senses, so the faster ones must be summarised before it sees them.</figcaption></figure>
+<p>A policy that runs 10 to 50 times a second cannot take in a signal that arrives a thousand times a second sample by sample. Each fast signal is cut into a short window, the most recent tenth of a second for example, and encoded into a few tokens. Force becomes a short series. Sound becomes a spectrogram, a picture of pitch against time, and goes through an image-style encoder. Throwing the window away and keeping only the latest reading loses exactly what made the sense useful: the spike at impact, the vibration of a slip.</p></section>
+
+<section class="note-sec"><h2 id="ingest">How a model takes each sense in</h2>
+
+<p>A transformer accepts only one thing: a sequence of tokens. Every sense therefore goes through the same three steps. It is cut into pieces, each piece is turned into a vector by an encoder built for that kind of signal, and the vectors join the sequence.</p>
+<figure class="gfig card "><a class="zoom" href="img/guide/ingest.png"><img src="img/guide/ingest.png" width="1500" height="953" loading="lazy" alt="A table of seven inputs: camera image, touch image, pressure array, force and torque, body state, sound and instruction. For each: the form it arrives in, how it is prepared, the encoder used, and the typical number of tokens, from 256 for a camera image down to 1 for body state. All the tokens join one sequence that goes to the transformer."></a><figcaption>How each input becomes tokens. The token counts are typical values. They matter because the cost of running the model grows with the length of the sequence.</figcaption></figure><ul><li><strong>Camera and touch images.</strong> Cut into square patches, and each patch becomes one token. A camera-based fingertip produces an image, so it uses the same machinery, usually a smaller encoder trained on touch images.</li><li><strong>Pressure arrays.</strong> Small enough to treat as a tiny image or to flatten into one vector.</li><li><strong>Force and torque.</strong> The last tenth of a second or so, as a short series of six-number readings, goes through a small network that outputs one or a few tokens. The window is what preserves spikes and vibration.</li><li><strong>Body state.</strong> Normalised and passed through a single linear layer to become one token.</li><li><strong>Instruction.</strong> Split into word pieces by the language model’s tokenizer, each looked up in a table of vectors. “put the white mug on the plate” becomes seven tokens: put, the, white, mug, on, the, plate.</li></ul>
+<figure class="gfig card "><a class="zoom" href="img/guide/audio_ingest.jpg"><img src="img/guide/audio_ingest.jpg" width="1500" height="553" loading="lazy" alt="Three steps for sound. One second of a knock as a waveform of 16,000 numbers. The same second as a spectrogram of 64 pitch bands by 96 time steps. The spectrogram cut by a grid into 24 patches, which become 24 tokens."></a><figcaption>Sound, step by step, on a real clip. One second is 16,000 numbers. As a spectrogram it is a small image. Cut into patches it is 24 tokens, and from there it is handled like any image.</figcaption></figure>
+<p>Sound takes one extra step, because 16,000 numbers a second is far too many to use directly. The waveform is converted to a spectrogram, and the spectrogram is then cut into patches exactly as a photo would be. This is why image models adapt so readily to audio.</p>
+<p>Two design choices recur across all of these. The first is how many tokens to spend: more tokens keep more detail and make every pass through the model slower, which the <a href="guide-deployment.html">deployment</a> note quantifies. The second is where each encoder comes from. The image encoder arrives pretrained on the web. Encoders for touch, force and sound usually start from nothing and learn only from robot data.</p></section>
+
+<section class="note-sec"><h2 id="deadlines">Deadlines: how fast is fast enough</h2>
+
+<p>How quickly a robot must act on a sense is set by physics, not by preference. The clearest case is a slipping object, where gravity is the clock.</p>
+<figure class="gfig card "><a class="zoom" href="img/guide/fall.png"><img src="img/guide/fall.png" width="1500" height="682" loading="lazy" alt="A line on log axes of how far a released object falls against the time before the robot responds, with four marked points: 74 milliseconds, the human grip reflex, 2.7 centimetres; 100 milliseconds, one step of a 10 hertz policy, 4.9 centimetres; 250 milliseconds, a person reacting by sight, 31 centimetres; 500 milliseconds, waiting out half a second of a chunk, 123 centimetres."></a><figcaption>Free fall, from the formula distance = half of g times time squared. A response within 74 ms, the measured human grip reflex, lets an object drop under 3 cm. Half a second lets it drop more than a metre.</figcaption></figure>
+<p>People tighten their grip about 74 milliseconds after an object starts to slip, a reflex that runs through touch and does not wait for the eyes or for a decision. Reacting to something seen takes three times as long. A robot that only notices a slip when its next action chunk begins has, by then, dropped the object.</p>
+<figure class="gfig card "><a class="zoom" href="img/guide/timescales.png"><img src="img/guide/timescales.png" width="1500" height="923" loading="lazy" alt="Three groups of bars on a log time axis from 1 millisecond to 3 seconds. What happens at the fingers: first contact in 1 to 5 milliseconds, slip developing over tens of milliseconds, grip and load changing over tenths of a second. How fast people respond: grip reflex about 74 milliseconds, reacting to sight 200 to 250, choosing between options 300 to 500. How fast each robot layer responds: motor controller 1 to 2 milliseconds, compliant control loop 1 to 10, one policy step 20 to 100, waiting for the next chunk 0.5 to 2 seconds, high-level model 1 to 3 seconds."></a><figcaption>Events, human responses and robot layers on one time axis. Each robot layer can only answer events slower than itself. The ranges are typical values.</figcaption></figure>
+<p>The figure gives a rule for where each sense should be handled. Anything faster than about ten milliseconds, such as limiting force at first contact, belongs in the controller and never reaches the learned policy. Events of tens of milliseconds, such as a slip starting, need either a policy that can react between chunks or a fast reflex beside it. Slow changes, such as how the grasp is settling, fit the policy’s normal rate. Meaning, such as a spoken “stop”, can wait for the high-level model.</p></section>
+
+<section class="note-sec"><h2 id="bands">Touch has two bands</h2>
+
+<figure class="gfig card "><a class="zoom" href="img/guide/touch_bands.png"><img src="img/guide/touch_bands.png" width="1500" height="633" loading="lazy" alt="Three frequency bands on a log axis: steady force and shape below about 10 cycles per second, slip and texture vibration from tens to hundreds, and contact sounds in the thousands. A camera-based touch sensor covers only the first band. A wrist force-torque sensor reaches into the second. An accelerometer, piezo film or contact microphone covers the second and third."></a><figcaption>Which sensor can carry which part of the signal. A sensor cannot report changes faster than half its reading rate, so a camera-based fingertip at 30 to 60 frames a second cannot carry vibration.</figcaption></figure>
+<p>Touch carries two different kinds of information. The slow part is steady force and the shape of the contact: how hard the fingers press and where. The fast part is vibration, a buzz of tens to hundreds of cycles a second that appears when a surface starts to slide and that also encodes texture. Human skin has separate receptors for each.</p>
+<p>This matters when choosing a sensor. Camera-based fingertips give a rich picture of the slow part and, at camera frame rates, cannot carry the fast part. Vibration needs a sensor that reads hundreds or thousands of times a second: a fast force sensor, a small accelerometer, a piezo film, or a contact microphone, which is why touch and sound overlap in practice. When recording a dataset, keep the raw fast signal and note the sensor type and its rate. A summary computed at collection time cannot be recomputed later.</p></section>
+
+<section class="note-sec"><h2 id="fusion">Combining senses in one policy</h2>
+
+<p>In a transformer policy, combining senses is mechanically simple. Each one gets its own small encoder that turns it into tokens, and the tokens join the same sequence as the image and language tokens. The difficulty is in the training.</p><ul><li><strong>One sense dominates.</strong> Vision predicts the action well for most of every episode, so the policy learns to rely on it and gives the others almost no weight. The usual remedy is to randomly drop or blank a sense during training, so that the policy has to be able to use each.</li><li><strong>Check that it is used.</strong> Run the policy with one sense removed or replaced by noise. If success does not change, that sense is not contributing, whatever the architecture diagram says.</li><li><strong>Sensors differ.</strong> Two touch sensors of the same model give different readings, and a microphone moved by a centimetre hears something else. Calibrate, or collect across several units.</li><li><strong>Little shared data.</strong> Almost no large public dataset includes touch or sound, so these encoders start from scratch while the vision encoder starts from the whole web.</li></ul><p>The practical order is to add a sense when a specific failure calls for it: slipping calls for touch, missed insertions for force, events hidden from the camera for sound.</p></section>
+
+<section class="note-sec split2">
+<div><h2 id="mistakes">Common mistakes</h2><ul><li><strong>Adding sensors before finding the failure.</strong> Each one adds calibration, wear and a new way for training and deployment to differ.</li><li><strong>Feeding only the latest reading.</strong> Fast senses carry their information in how the signal changes over a short window.</li><li><strong>Assuming a sense is used.</strong> Test with it removed.</li></ul></div>
+<div><h2 id="terms">Terms</h2><dl class="terms"><dt>Proprioception</dt><dd>A robot’s sense of its own joint positions, speeds and efforts.</dd><dt>Force-torque sensor</dt><dd>A sensor, usually at the wrist, that measures the total push and twist applied to the hand.</dd><dt>Tactile sensor</dt><dd>A sensor on the fingers or palm that measures contact over an area.</dd><dt>Spectrogram</dt><dd>A picture of a sound: time across, pitch up, loudness as brightness.</dd><dt>Modality dropout</dt><dd>Randomly removing one input type during training so the policy cannot depend on a single one.</dd></dl></div></section>
+
+        <section class="note-sec split2 more"><div><h2>Further reading</h2><ul class="links"><li><a href="https://arxiv.org/abs/2104.01778">Gong et al., 2021. AST: Audio Spectrogram Transformer.</a></li><li><a href="https://link.springer.com/article/10.1007/BF00236210">Johansson and Westling, 1987. Signals in tactile afferents from the fingers eliciting adaptive motor responses during precision grip. Experimental Brain Research 66.</a></li><li>Howe and Cutkosky, 1989. Sensing skin acceleration for slip and texture perception. IEEE International Conference on Robotics and Automation.</li><li><a href="https://arxiv.org/abs/2212.03858">Li et al., 2022. See, Hear, and Feel: Smart Sensory Fusion for Robotic Manipulation.</a></li><li><a href="https://arxiv.org/abs/2406.19464">Liu et al., 2024. ManiWAV: Learning Robot Manipulation from In-the-Wild Audio-Visual Data.</a></li><li><a href="https://arxiv.org/abs/2410.24091">Huang et al., 2024. 3D-ViTac: Learning Fine-Grained Manipulation with Visuo-Tactile Sensing.</a></li></ul></div></section>
+        <nav class="pager" aria-label="Guide pages"><a href="guide-dexterous-hands.html"><span>Previous</span>Dexterous hands</a><a class="pnext" href="guide-evaluation.html"><span>Next</span>Evaluation</a></nav>
+      </article>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div>
+        <p class="foot-title">Get in touch</p>
+        <p>Interesting problems in robotics and machine learning, collaboration, or questions about past work.</p>
+      </div>
+      <div class="foot-links"><a href="mailto:matthew.wnuk@gmail.com">matthew.wnuk@gmail.com</a><a href="https://www.linkedin.com/in/matthewwnuk">LinkedIn</a><a href="https://github.com/wnukmat">GitHub</a><a href="https://huggingface.co/mwnuk">Hugging Face</a><a href="resume.html">Resume</a></div>
+    </div>
+  </footer>
+</body>
+</html>

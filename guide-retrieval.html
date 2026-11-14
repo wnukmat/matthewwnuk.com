@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Retrieval and multimodal retrieval: a guide to deep learning and robotics | Matthew Wnuk</title>
+  <meta name="description" content="Finding instead of generating: embeddings, ranking metrics, searching across text and images, large collections, and uses in robotics.">
+  <link rel="canonical" href="https://www.matthewwnuk.com/guide-retrieval.html">
+  <meta property="og:site_name" content="Matthew Wnuk">
+  <meta property="og:title" content="Retrieval and multimodal retrieval: a guide to deep learning and robotics | Matthew Wnuk">
+  <meta property="og:description" content="Finding instead of generating: embeddings, ranking metrics, searching across text and images, large collections, and uses in robotics.">
+  <meta property="og:url" content="https://www.matthewwnuk.com/guide-retrieval.html">
+  <meta property="og:image" content="https://www.matthewwnuk.com/img/headshot.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="site-name" href="./"><img src="favicon.svg" alt="" width="28" height="28">Matthew Wnuk</a>
+      <nav aria-label="Main">
+        <a href="./#work">Work</a>
+        <a href="guide.html" aria-current="page">Guide</a>
+        <a href="./#experience">Experience</a>
+        <a href="resume.html">Resume</a>
+        <a href="about.html">About</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+
+    <header class="case-head guide-head">
+      <div class="wrap">
+        <a class="back" href="guide.html">&larr; All topics</a>
+        <p class="eyebrow">Guide &middot; Models &middot; Topic 8 of 31</p>
+        <h1>Retrieval and multimodal retrieval</h1>
+        <p class="dek">Finding instead of generating: embeddings, ranking metrics, searching across text and images, large collections, and uses in robotics.</p>
+        <p class="gmeta"><span>6 minute read</span><span class="assumes">Builds on: <a href="guide-contrastive-learning.html">Contrastive and multimodal learning</a></span></p>
+      </div>
+    </header>
+    <div class="wrap note">
+      <aside class="toc card"><h2>In this note</h2><ol><li><a href="#what">Finding instead of generating</a></li><li><a href="#real">A worked example on robot data</a></li><li><a href="#metrics">Scoring a ranking</a></li><li><a href="#multimodal">Multimodal retrieval</a></li><li><a href="#scale">Searching large collections</a></li><li><a href="#better">Beyond one vector</a></li><li><a href="#robots">Retrieval in robotics</a></li><li><a href="#mistakes">Common mistakes</a></li></ol>
+        <h2>Key points</h2><ul class="keys"><li>Retrieval turns search into finding the nearest vectors.</li><li>Always score a trivial baseline, and choose the metric by what the results are for.</li><li>A shared embedding space lets text find images, and any sensor find another.</li></ul></aside>
+      <article class="note-body">
+<section class="note-sec"><h2 id="what">Finding instead of generating</h2>
+
+<p><strong>Retrieval</strong> answers a question by finding the right item in a collection. A model that generates has to carry everything it knows in its weights. A model that retrieves can look things up, so its knowledge can be inspected, corrected and extended without retraining.</p>
+<figure class="gfig card "><a class="zoom" href="img/guide/retr_pipeline.png"><img src="img/guide/retr_pipeline.png" width="1500" height="676" loading="lazy" alt="Two rows. Ahead of time: a collection passes through an encoder into an index holding one vector per item. At query time: a query passes through the encoder, the nearest vectors are looked up in the index to give the top 100, and a re-ranker narrows them to the top 10."></a><figcaption>The standard pipeline. The collection is encoded once. Each query is encoded, matched against the stored vectors, and the short list is optionally re-ordered by a slower model.</figcaption></figure>
+<p>Modern retrieval is built on embeddings. An encoder turns each item into a vector such that similar items have similar vectors, and searching becomes finding the nearest vectors to the query. The note on <a href="guide-contrastive-learning.html">contrastive learning</a> covers how such encoders are trained.</p></section>
+
+<section class="note-sec"><h2 id="real">A worked example on robot data</h2>
+
+<p>The collection here is 1,516 camera frames, four from each of the 379 LIBERO demonstrations, embedded with a public CLIP image encoder. A query is one frame. A retrieved frame counts as relevant if it comes from a different episode of the same task.</p>
+<figure class="gfig card "><a class="zoom" href="img/guide/retr_examples.jpg"><img src="img/guide/retr_examples.jpg" width="1500" height="944" loading="lazy" alt="Four query frames from different robot tasks, each followed by its five nearest frames from other episodes. All twenty retrieved frames are outlined in green, meaning they show the same task as the query."></a><figcaption>Four queries and their five nearest neighbours from other episodes. Green means the same task.</figcaption></figure>
+<figure class="gfig card "><a class="zoom" href="img/guide/retr_metrics.png"><img src="img/guide/retr_metrics.png" width="1500" height="593" loading="lazy" alt="Five retrieval metrics for two representations. Raw 16 by 16 pixels: recall at 1 of 92, recall at 5 of 98, precision at 5 of 90, mean reciprocal rank 95, mean average precision 70. CLIP image embedding: 96, 100, 95, 98 and 77."></a><figcaption>The same test scored five ways, for CLIP embeddings and for a trivial baseline: each frame shrunk to 16 × 16 grey pixels.</figcaption></figure>
+<p>CLIP retrieves a frame of the right task first 96% of the time. The more instructive number is the baseline. Shrinking each frame to 256 grey pixels and comparing those directly scores 92%. These scenes differ so much in overall appearance that almost anything can tell the tasks apart, so a high score here says little about the encoder. Without the baseline the 96% would have looked like an achievement. The first note’s rule applies: know what the trivial method scores.</p></section>
+
+<section class="note-sec"><h2 id="metrics">Scoring a ranking</h2>
+<div class="tablewrap"><table class="gtable "><thead><tr><th>Metric</th><th>Question it answers</th><th>Use it when</th></tr></thead><tbody><tr><th>Recall at k</th><td>Is at least one relevant item in the top k?</td><td>One good hit is enough, as in looking up an answer</td></tr><tr><th>Precision at k</th><td>What share of the top k is relevant?</td><td>The user reads the whole list</td></tr><tr><th>Mean reciprocal rank</th><td>How high is the first relevant item? Scores 1, ½, ⅓ … for ranks 1, 2, 3</td><td>Only the first hit matters and its position counts</td></tr><tr><th>Mean average precision</th><td>Are all the relevant items near the top?</td><td>There are many relevant items and all should be found</td></tr><tr><th>nDCG</th><td>As above, with graded relevance and a discount for lower ranks</td><td>Some results are better than others</td></tr></tbody></table></div>
+<p>The figure shows why the choice matters. Recall at 5 is 100% for CLIP while mean average precision is 77%. The first hit is nearly always right, and the full set of relevant frames is not all ranked at the top. Which number to report depends on what the retrieved items are for.</p></section>
+
+<section class="note-sec"><h2 id="multimodal">Multimodal retrieval</h2>
+
+<p>If two kinds of data share an embedding space, a query of one kind can retrieve items of the other. CLIP’s text encoder and image encoder were trained for this, so a sentence can search the same collection of frames.</p>
+<figure class="gfig card "><a class="zoom" href="img/guide/retr_text.jpg"><img src="img/guide/retr_text.jpg" width="1500" height="1224" loading="lazy" alt="Four text queries, each with the five best-matching robot frames from different episodes. A moka pot on a stove: all five show the moka pot scene. A microwave oven: one shows the microwave and four show a white cabinet. A wicker basket: all five show the basket scene. A book: two show the book and three do not."></a><figcaption>Text queries against the same frames, top five from distinct episodes. No frame was ever labelled with these words.</figcaption></figure>
+<p>The results are a fair picture of the technique. “A moka pot on a stove” and “a wicker basket” are found five times out of five. “A microwave oven” returns the microwave once and a white cabinet four times, which is a reasonable confusion for a boxy white appliance in a simulated scene. “A book” finds the book twice.</p><div class="tablewrap"><table class="gtable "><thead><tr><th>Kind</th><th>Query</th><th>Returns</th><th>Example</th></tr></thead><tbody><tr><th>Text to image</th><td>A description</td><td>Images or video</td><td>Find every episode that contains a drawer</td></tr><tr><th>Image to image</th><td>A picture</td><td>Similar pictures</td><td>Find past scenes like the one in front of the robot</td></tr><tr><th>Image to text</th><td>A picture</td><td>Captions or documents</td><td>Find the manual page for this part</td></tr><tr><th>Composed</th><td>A picture and a modification in words</td><td>Images</td><td>Like this scene, with the door open</td></tr><tr><th>Cross-sensor</th><td>A reading from one sensor</td><td>Data from another</td><td>Find the camera frames that match this touch pattern</td></tr></tbody></table></div></section>
+
+<section class="note-sec"><h2 id="scale">Searching large collections</h2>
+
+<figure class="gfig card "><a class="zoom" href="img/guide/retr_ann.png"><img src="img/guide/retr_ann.png" width="1500" height="606" loading="lazy" alt="Left: time per query for exact search against collection size, rising from 3 milliseconds at 10,000 items to 86 at one million. Right: share of the true top 10 found against the share of the collection examined, reaching 97 percent after examining 8 percent and 99 percent after 11 percent."></a><figcaption>Measured for this note. Left: comparing a query with every stored 512-number vector, on a desktop processor. Right: the robot-frame collection split into 32 clusters, searching only the clusters nearest the query.</figcaption></figure>
+<p>Exact search compares the query with everything, so its cost grows in step with the collection: 9 ms at 100,000 items and 86 ms at a million here. <strong>Approximate nearest-neighbour</strong> search gives up a little accuracy to avoid that. In the right-hand panel, examining 8% of the collection found 97% of the true top ten.</p><ul><li><strong>Clustering (inverted file).</strong> Group the vectors into clusters ahead of time and search only the few clusters nearest the query. This is the method in the figure.</li><li><strong>Graphs (HNSW).</strong> Link each vector to its neighbours and walk the graph toward the query. Very fast and accurate, at the cost of memory for the links.</li><li><strong>Compression (product quantisation).</strong> Store each vector as a short code so that far more fit in memory, with some loss of precision.</li></ul><p>Below about 100,000 items exact search is usually fast enough and has nothing to tune. Reach for an index when it stops being so.</p></section>
+
+<section class="note-sec"><h2 id="better">Beyond one vector</h2>
+<ul><li><strong>Re-ranking.</strong> Retrieve a generous short list quickly, then score each candidate with a slower model that reads the query and the candidate together. It fixes many of the mistakes of single-vector matching at a cost that applies only to the short list.</li><li><strong>Late interaction.</strong> Keep a vector for every token or patch instead of one per item, and match them in detail at query time. It is more accurate on long, specific queries and stores many times more data.</li><li><strong>Hybrid search.</strong> Combine embedding search with keyword search. Embeddings find paraphrases and keywords find exact names and part numbers, and each covers the other’s blind spot.</li></ul></section>
+
+<section class="note-sec"><h2 id="robots">Retrieval in robotics</h2>
+<ul><li><strong>Finding training data.</strong> Given a few demonstrations of a new task, retrieve similar episodes from a large unlabelled collection and train on both.</li><li><strong>Checking coverage.</strong> Retrieve the nearest training episodes to a failure. If nothing is close, the policy was never shown that situation, as the <a href="guide-failure-triage.html">failure triage</a> note describes.</li><li><strong>De-duplication and curation.</strong> Near-identical episodes sit close together in embedding space and can be found and removed.</li><li><strong>Memory.</strong> Store what the robot has seen with where and when, and retrieve it to answer “where did I last see the keys?”.</li><li><strong>Giving a language model facts.</strong> Retrieve relevant documents and place them in the prompt, so answers rest on a source that can be checked.</li><li><strong>Recognising items.</strong> Match a camera view against a catalogue of known products or parts. My <a href="caseid.html">CaseID</a> and <a href="maritime-retrieval.html">maritime retrieval</a> projects are both of this kind.</li></ul></section>
+
+<section class="note-sec split2">
+<div><h2 id="mistakes">Common mistakes</h2><ul><li><strong>Reporting a score with no baseline.</strong> On an easy collection a trivial method scores highly too.</li><li><strong>Letting the query retrieve itself.</strong> Exclude the query, and near-copies such as frames of the same episode, from the results.</li><li><strong>Choosing one metric by habit.</strong> Recall at 1 and mean average precision can tell different stories about the same system.</li><li><strong>Building an index too early.</strong> Exact search is simpler and exact. Measure before replacing it.</li></ul></div>
+<div><h2 id="terms">Terms</h2><dl class="terms"><dt>Retrieval</dt><dd>Finding the items in a collection that best match a query.</dd><dt>Index</dt><dd>A stored structure that makes nearest-vector search fast.</dd><dt>Recall at k</dt><dd>The share of queries with at least one relevant item in the top k.</dd><dt>Mean average precision</dt><dd>A score that rewards ranking all relevant items near the top.</dd><dt>Approximate nearest neighbour</dt><dd>Search that examines part of a collection and accepts a small chance of missing a true neighbour.</dd><dt>Re-ranking</dt><dd>Re-ordering a retrieved short list with a slower, more accurate model.</dd></dl></div></section>
+
+        <section class="note-sec split2 more"><div><h2>Further reading</h2><ul class="links"><li><a href="https://arxiv.org/abs/2004.04906">Karpukhin et al., 2020. Dense Passage Retrieval for Open-Domain Question Answering.</a></li><li><a href="https://arxiv.org/abs/2004.12832">Khattab and Zaharia, 2020. ColBERT: Efficient and Effective Passage Search via Contextualized Late Interaction over BERT.</a></li><li><a href="https://arxiv.org/abs/1702.08734">Johnson et al., 2017. Billion-scale similarity search with GPUs (FAISS).</a></li><li><a href="https://arxiv.org/abs/1603.09320">Malkov and Yashunin, 2016. Efficient and robust approximate nearest neighbor search using Hierarchical Navigable Small World graphs.</a></li><li><a href="https://arxiv.org/abs/2005.11401">Lewis et al., 2020. Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks.</a></li><li><a href="https://arxiv.org/abs/2304.08742">Du et al., 2023. Behavior Retrieval: Few-Shot Imitation Learning by Querying Unlabeled Datasets.</a></li><li><a href="https://arxiv.org/abs/2103.00020">Radford et al., 2021. Learning Transferable Visual Models From Natural Language Supervision (CLIP).</a></li></ul></div></section>
+        <nav class="pager" aria-label="Guide pages"><a href="guide-contrastive-learning.html"><span>Previous</span>Contrastive and multimodal learning</a><a class="pnext" href="guide-generative-modeling.html"><span>Next</span>Generative modeling</a></nav>
+      </article>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div>
+        <p class="foot-title">Get in touch</p>
+        <p>Interesting problems in robotics and machine learning, collaboration, or questions about past work.</p>
+      </div>
+      <div class="foot-links"><a href="mailto:matthew.wnuk@gmail.com">matthew.wnuk@gmail.com</a><a href="https://www.linkedin.com/in/matthewwnuk">LinkedIn</a><a href="https://github.com/wnukmat">GitHub</a><a href="https://huggingface.co/mwnuk">Hugging Face</a><a href="resume.html">Resume</a></div>
+    </div>
+  </footer>
+</body>
+</html>

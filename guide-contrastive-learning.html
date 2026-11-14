@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Contrastive and multimodal learning: a guide to deep learning and robotics | Matthew Wnuk</title>
+  <meta name="description" content="Learning by comparison: triplet and batch-wide losses, mining, and how two kinds of data are brought into one space.">
+  <link rel="canonical" href="https://www.matthewwnuk.com/guide-contrastive-learning.html">
+  <meta property="og:site_name" content="Matthew Wnuk">
+  <meta property="og:title" content="Contrastive and multimodal learning: a guide to deep learning and robotics | Matthew Wnuk">
+  <meta property="og:description" content="Learning by comparison: triplet and batch-wide losses, mining, and how two kinds of data are brought into one space.">
+  <meta property="og:url" content="https://www.matthewwnuk.com/guide-contrastive-learning.html">
+  <meta property="og:image" content="https://www.matthewwnuk.com/img/headshot.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="site-name" href="./"><img src="favicon.svg" alt="" width="28" height="28">Matthew Wnuk</a>
+      <nav aria-label="Main">
+        <a href="./#work">Work</a>
+        <a href="guide.html" aria-current="page">Guide</a>
+        <a href="./#experience">Experience</a>
+        <a href="resume.html">Resume</a>
+        <a href="about.html">About</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+
+    <header class="case-head guide-head">
+      <div class="wrap">
+        <a class="back" href="guide.html">&larr; All topics</a>
+        <p class="eyebrow">Guide &middot; Models &middot; Topic 7 of 31</p>
+        <h1>Contrastive and multimodal learning</h1>
+        <p class="dek">Learning by comparison: triplet and batch-wide losses, mining, and how two kinds of data are brought into one space.</p>
+        <p class="gmeta"><span>6 minute read</span><span class="assumes">Builds on: <a href="guide-representation-learning.html">Representation learning</a></span></p>
+      </div>
+    </header>
+    <div class="wrap note">
+      <aside class="toc card"><h2>In this note</h2><ol><li><a href="#idea">Learning by comparison</a></li><li><a href="#losses">The losses</a></li><li><a href="#run">Three losses on the same data</a></li><li><a href="#multimodal">Two modalities, one space</a></li><li><a href="#more">Beyond images and text</a></li><li><a href="#fail">How it goes wrong</a></li><li><a href="#mistakes">Common mistakes</a></li></ol>
+        <h2>Key points</h2><ul class="keys"><li>A contrastive loss needs only to know what belongs together.</li><li>Triplet losses depend on mining; batch-wide losses use every negative for free.</li><li>A single shared vector is powerful for retrieval and too blunt for detailed instructions.</li></ul></aside>
+      <article class="note-body">
+<section class="note-sec"><h2 id="idea">Learning by comparison</h2>
+
+<p>Most losses compare a prediction with a correct answer. A <strong>contrastive</strong> loss needs no answer at all. It is told only which things belong together, and it shapes an embedding space so that those land close and everything else lands far apart.</p>
+<p>That is enough to learn a great deal, because “belong together” is cheap to obtain. Two photos of the same product belong together. An image and its caption belong together. A camera frame and the touch reading recorded in the same instant belong together. The second and third are how models are taught to relate different kinds of data, which is what <strong>multimodal</strong> learning means.</p></section>
+
+<section class="note-sec"><h2 id="losses">The losses</h2>
+
+<figure class="gfig card "><a class="zoom" href="img/guide/triplet.png"><img src="img/guide/triplet.png" width="1500" height="676" loading="lazy" alt="Two diagrams of an anchor point, a positive and a negative. Before: the negative is closer to the anchor than the positive. After: the negative has been pushed out beyond the positive’s distance plus a margin."></a><figcaption>A triplet. Training moves the points until the negative is further from the anchor than the positive is, by at least the margin.</figcaption></figure>
+<p>The <strong>triplet loss</strong> works on three items at a time: an anchor, a positive that should be near it, and a negative that should not.</p>
+<p class="formula">L = max( 0, d(anchor, positive) − d(anchor, negative) + margin )</p>
+<p>The loss is zero once the negative is further away than the positive by the margin. That zero is its weakness as well as its point. Most randomly chosen triplets already satisfy it and teach nothing, so training depends on finding the triplets that do not. That search is called <strong>mining</strong>.</p><div class="tablewrap"><table class="gtable "><thead><tr><th>Loss</th><th>Compares</th><th>Strength</th><th>Weakness</th></tr></thead><tbody><tr><th>Contrastive (pairwise)</th><td>Two items: pull together if matched, push apart up to a margin if not</td><td>Simplest</td><td>Uses little of each batch</td></tr><tr><th>Triplet</th><td>Anchor, positive, negative</td><td>Directly states the ranking wanted</td><td>Most triplets are uninformative; needs mining</td></tr><tr><th>InfoNCE</th><td>One positive against every other item in the batch, as a classification</td><td>Uses every negative in the batch; no mining</td><td>Wants large batches; has a temperature to tune</td></tr><tr><th>Supervised contrastive</th><td>As InfoNCE, with every same-class item as a positive</td><td>Uses labels when they exist</td><td>Needs labels</td></tr><tr><th>Sigmoid (SigLIP)</th><td>Every pair in the batch, each as its own yes or no</td><td>Works at small and very large batch sizes</td><td>Needs a bias term and care with the many negatives</td></tr></tbody></table></div>
+<p><strong>InfoNCE</strong> is the loss behind CLIP. Take a batch of N matched pairs. For each item, compute its similarity to all N candidates, divide by a small number called the <strong>temperature</strong>, and apply cross entropy with the true partner as the correct class.</p>
+<p class="formula">L = − log [ exp( s<sub>ii</sub> ÷ τ ) ÷ Σ<sub>j</sub> exp( s<sub>ij</sub> ÷ τ ) ]</p>
+<p>Every other item in the batch is a negative for free, which is why these models are trained with batches of thousands. The temperature sets how hard the loss concentrates on the most confusing negatives: a low value attends almost only to the hardest ones.</p></section>
+
+<section class="note-sec"><h2 id="run">Three losses on the same data</h2>
+
+<figure class="gfig card "><a class="zoom" href="img/guide/contrast_embedding.png"><img src="img/guide/contrast_embedding.png" width="1500" height="694" loading="lazy" alt="Two scatter plots of handwritten-digit embeddings in two dimensions, coloured by digit. Before training the ten digits overlap in one cloud. After training with a triplet loss they form ten separate clusters."></a><figcaption>Run for this note on a public set of 1,797 handwritten digits. A small network maps each image to a point in two dimensions. Left: before training. Right: after training with a triplet loss. Nothing told it there were ten classes, only which images matched.</figcaption></figure>
+<figure class="gfig card "><a class="zoom" href="img/guide/contrast_curves.png"><img src="img/guide/contrast_curves.png" width="1500" height="614" loading="lazy" alt="Retrieval accuracy against training passes for three losses. Triplet with random negatives reaches 98.0 percent. Triplet with the hardest negatives in the batch reaches 98.9. Contrast against the whole batch reaches 99.2 and gets there fastest."></a><figcaption>The same data with a 16-dimensional embedding, mean of five runs. The score is how often an image’s nearest neighbour is the same digit. An untrained network scores 84%.</figcaption></figure>
+<p>Two lessons hold beyond this small case. Choosing negatives matters: taking the hardest ones in each batch cut the error of the triplet loss roughly in half, from 2.0% to 1.1%. And contrasting against the whole batch did a little better again, and learned fastest, with nothing to mine. This is why InfoNCE-style losses displaced triplets for large-scale pretraining, and why triplets with hard mining remain common where data is labelled and batches are small.</p></section>
+
+<section class="note-sec"><h2 id="multimodal">Two modalities, one space</h2>
+
+<p>Apply the same loss across two kinds of data and the result is a shared embedding space. CLIP has an image encoder and a text encoder, and trains them so that an image and its caption land at the same point. Afterwards a picture can be compared with a sentence directly, which gives recognition from a text description with no training on the classes involved.</p>
+<figure class="gfig card "><a class="zoom" href="img/guide/clip_robot.jpg"><img src="img/guide/clip_robot.jpg" width="1500" height="848" loading="lazy" alt="A ten by ten grid of probabilities that each of ten robot camera frames matches each of ten task instructions, from a CLIP model. The correct matches lie on the diagonal. The model’s choice is correct for only two of the ten frames, and several frames are assigned the same instruction."></a><figcaption>A real test for this note: a public CLIP model given ten LIBERO frames and their ten task instructions, asked which instruction goes with which frame. It gets 2 of 10.</figcaption></figure>
+<p>The result is a useful warning. The same model recognises everyday photos very well. It fails here for three reasons that recur in robotics. The scenes are nearly identical tabletops that differ in small objects. The instructions are long and compositional, and a single vector cannot hold “the white mug on the left plate and the yellow mug on the right”. And the images are simulated, which is far from what the model was trained on. Matching one vector against one vector is a blunt instrument, and this is the main reason robot models use the vision encoder’s patch features inside a language model instead. The note on <a href="guide-vision-language-models.html">vision-language models</a> picks up there.</p></section>
+
+<section class="note-sec"><h2 id="more">Beyond images and text</h2>
+<ul><li><strong>More senses.</strong> The same recipe aligns sound, depth, touch and motion with images. Because each is paired with images, they become comparable with each other without ever having been paired directly.</li><li><strong>Time.</strong> Frames close together in a video are positives and distant frames are negatives. The embedding learns what changes slowly, which is often the task-relevant state.</li><li><strong>Views.</strong> Two cameras looking at the same moment form a positive pair, which teaches features that do not depend on viewpoint.</li><li><strong>Touch and vision.</strong> A fingertip image and the camera image of the same contact, paired, give a touch encoder a starting point that does not depend on scarce labelled touch data.</li></ul></section>
+
+<section class="note-sec"><h2 id="fail">How it goes wrong</h2>
+<ul><li><strong>Collapse.</strong> If nothing pushes points apart, mapping everything to one point satisfies the loss. Negatives prevent it, and methods without negatives need another device, as the <a href="guide-representation-learning.html">representation learning</a> note shows.</li><li><strong>False negatives.</strong> Two different images of the same thing in one batch are treated as a mismatch and pushed apart. It worsens as batches grow.</li><li><strong>Shortcuts.</strong> If positives share something trivial, such as the same background or camera, the model learns that and nothing else.</li><li><strong>The modality gap.</strong> Even after training, images and texts tend to occupy separate regions of the shared space. Distances across modalities are meaningful only in relative terms.</li></ul></section>
+
+<section class="note-sec split2">
+<div><h2 id="mistakes">Common mistakes</h2><ul><li><strong>Training a triplet loss without mining.</strong> Most triplets contribute nothing after the first few passes.</li><li><strong>Leaving the temperature at a default.</strong> It changes which negatives matter and is worth tuning.</li><li><strong>Expecting one vector to carry a sentence.</strong> Fine for “a photo of a mug”. Not for a multi-step instruction.</li></ul></div>
+<div><h2 id="terms">Terms</h2><dl class="terms"><dt>Embedding</dt><dd>A vector that represents an item so that similar items are close.</dd><dt>Positive and negative</dt><dd>Items that should and should not be close to the anchor.</dd><dt>Hard negative</dt><dd>A negative that the model currently places close to the anchor.</dd><dt>Mining</dt><dd>Selecting informative pairs or triplets to train on.</dd><dt>Temperature</dt><dd>A scale applied to similarities before the softmax; lower values sharpen the focus on the hardest negatives.</dd><dt>Modality gap</dt><dd>The tendency of different data types to occupy separate regions of a shared embedding space.</dd></dl></div></section>
+
+        <section class="note-sec split2 more"><div><h2>Further reading</h2><ul class="links"><li><a href="https://arxiv.org/abs/1503.03832">Schroff et al., 2015. FaceNet: A Unified Embedding for Face Recognition and Clustering (triplet loss).</a></li><li><a href="https://arxiv.org/abs/1703.07737">Hermans et al., 2017. In Defense of the Triplet Loss for Person Re-Identification.</a></li><li><a href="https://arxiv.org/abs/1807.03748">van den Oord et al., 2018. Representation Learning with Contrastive Predictive Coding (InfoNCE).</a></li><li><a href="https://arxiv.org/abs/2004.11362">Khosla et al., 2020. Supervised Contrastive Learning.</a></li><li><a href="https://arxiv.org/abs/2103.00020">Radford et al., 2021. Learning Transferable Visual Models From Natural Language Supervision (CLIP).</a></li><li><a href="https://arxiv.org/abs/2303.15343">Zhai et al., 2023. Sigmoid Loss for Language Image Pre-Training (SigLIP).</a></li><li><a href="https://arxiv.org/abs/2305.05665">Girdhar et al., 2023. ImageBind: One Embedding Space To Bind Them All.</a></li></ul></div></section>
+        <nav class="pager" aria-label="Guide pages"><a href="guide-representation-learning.html"><span>Previous</span>Representation learning</a><a class="pnext" href="guide-retrieval.html"><span>Next</span>Retrieval and multimodal retrieval</a></nav>
+      </article>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div>
+        <p class="foot-title">Get in touch</p>
+        <p>Interesting problems in robotics and machine learning, collaboration, or questions about past work.</p>
+      </div>
+      <div class="foot-links"><a href="mailto:matthew.wnuk@gmail.com">matthew.wnuk@gmail.com</a><a href="https://www.linkedin.com/in/matthewwnuk">LinkedIn</a><a href="https://github.com/wnukmat">GitHub</a><a href="https://huggingface.co/mwnuk">Hugging Face</a><a href="resume.html">Resume</a></div>
+    </div>
+  </footer>
+</body>
+</html>

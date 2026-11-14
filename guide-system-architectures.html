@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>System 0, 1 and 2 architectures: a guide to deep learning and robotics | Matthew Wnuk</title>
+  <meta name="description" content="Why robot policies are split into models that run at different speeds, what each layer does, and how they are connected.">
+  <link rel="canonical" href="https://www.matthewwnuk.com/guide-system-architectures.html">
+  <meta property="og:site_name" content="Matthew Wnuk">
+  <meta property="og:title" content="System 0, 1 and 2 architectures: a guide to deep learning and robotics | Matthew Wnuk">
+  <meta property="og:description" content="Why robot policies are split into models that run at different speeds, what each layer does, and how they are connected.">
+  <meta property="og:url" content="https://www.matthewwnuk.com/guide-system-architectures.html">
+  <meta property="og:image" content="https://www.matthewwnuk.com/img/headshot.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="site-name" href="./"><img src="favicon.svg" alt="" width="28" height="28">Matthew Wnuk</a>
+      <nav aria-label="Main">
+        <a href="./#work">Work</a>
+        <a href="guide.html" aria-current="page">Guide</a>
+        <a href="./#experience">Experience</a>
+        <a href="resume.html">Resume</a>
+        <a href="about.html">About</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+
+    <header class="case-head guide-head">
+      <div class="wrap">
+        <a class="back" href="guide.html">&larr; All topics</a>
+        <p class="eyebrow">Guide &middot; Robots &middot; Topic 17 of 31</p>
+        <h1>System 0, 1 and 2 architectures</h1>
+        <p class="dek">Why robot policies are split into models that run at different speeds, what each layer does, and how they are connected.</p>
+        <p class="gmeta"><span>6 minute read</span><span class="assumes">Builds on: <a href="guide-robot-policies.html">Robot policies today</a></span></p>
+      </div>
+    </header>
+    <div class="wrap note">
+      <aside class="toc card"><h2>In this note</h2><ol><li><a href="#why">One model cannot be both fast and thoughtful</a></li><li><a href="#stack">System 2, System 1, System 0</a></li><li><a href="#three">What about System 3?</a></li><li><a href="#interface">The interface is the design</a></li><li><a href="#timing">Running at different speeds</a></li><li><a href="#choose">One model or several</a></li><li><a href="#mistakes">Common mistakes</a></li></ol>
+        <h2>Key points</h2><ul class="keys"><li>A slow model that understands and a fast model that reacts beat either alone.</li><li>What the slow system hands to the fast one is the main design decision.</li><li>System 0, 1 and 2 are published terms. “System 3” is informal: check what the author means.</li></ul></aside>
+      <article class="note-body">
+<section class="note-sec"><h2 id="why">One model cannot be both fast and thoughtful</h2>
+
+<p>A robot needs to understand a scene and an instruction, which takes a large model and a noticeable fraction of a second. It also needs to correct its motion many times a second, which takes a small model. No single network does both well, so current robot systems split the work between models that run at different speeds.</p>
+<figure class="gfig card "><a class="zoom" href="img/guide/sys_tracking.png"><img src="img/guide/sys_tracking.png" width="1500" height="588" loading="lazy" alt="A moving target and two attempts to follow it over six seconds. The slow system alone lags behind and moves in steps. The slow system combined with a fast one follows the target closely."></a><figcaption>A simulation for this note. The slow system looks 8 times a second and its answer arrives 120 ms late. Alone, its average error is 10.4 cm. With a fast loop underneath that runs 200 times a second, the error is 1.3 cm.</figcaption></figure>
+<p>The simulation is deliberately simple and makes the whole argument. A slow system acting alone is always answering a question that is out of date. Put a fast loop beneath it and the pair tracks eight times more closely, with the same slow system.</p>
+<p>The names come from psychology. Daniel Kahneman’s <em>Thinking, Fast and Slow</em> describes human thought as a fast, automatic System 1 and a slow, deliberate System 2. Robotics borrowed the labels, which is why the slow model has the higher number.</p></section>
+
+<section class="note-sec"><h2 id="stack">System 2, System 1, System 0</h2>
+
+<figure class="gfig card "><a class="zoom" href="img/guide/sys_stack.png"><img src="img/guide/sys_stack.png" width="1500" height="820" loading="lazy" alt="Three stacked boxes. System 2, a vision-language model, takes cameras and the instruction and runs 7 to 9 times a second. It passes a compact summary of intent to System 1, a fast visuomotor policy that takes cameras and body state and runs 200 times a second. System 1 passes joint targets to System 0, a learned whole-body controller that takes body state and an inertial sensor, runs 1,000 times a second and outputs motor torques."></a><figcaption>The layout and rates Figure has published for its Helix models. Other systems use the same division with different numbers.</figcaption></figure><div class="tablewrap"><table class="gtable "><thead><tr><th></th><th>System 2</th><th>System 1</th><th>System 0</th></tr></thead><tbody><tr><th>Job</th><td>Understand the scene and the instruction; decide what to do</td><td>Turn vision and intent into motion</td><td>Keep the body balanced and the joints on target</td></tr><tr><th>Built from</th><td>A vision-language model</td><td>A smaller transformer, often with a flow-matching or diffusion action head</td><td>A small network trained by reinforcement learning in simulation, or a classical controller</td></tr><tr><th>Inputs</th><td>Cameras, language</td><td>Cameras, body state, System 2’s output</td><td>Body state, inertial sensor, System 1’s targets</td></tr><tr><th>Rate</th><td>A few times a second</td><td>Tens to hundreds of times a second</td><td>Around a thousand times a second</td></tr><tr><th>Trained on</th><td>Web data, then robot data</td><td>Robot demonstrations</td><td>Simulation</td></tr></tbody></table></div>
+<figure class="gfig card "><a class="zoom" href="img/guide/sys_rates.png"><img src="img/guide/sys_rates.png" width="1500" height="575" loading="lazy" alt="Decisions per second on a log axis. System 0 at 1,000. System 1 at 200. System 2 at 7 to 9. A level above System 2, where present, at one per second down to one every 20 seconds."></a><figcaption>The same layers on one axis. Each is roughly ten to a hundred times faster than the one above it.</figcaption></figure>
+<p>System 2 and System 1 are the pair most systems have. <strong>System 0</strong> is a newer label for the layer underneath: on a humanoid, the controller that handles balance and contact for the whole body, which used to be hand-engineered and is now often learned. The notes on <a href="guide-reinforcement-learning.html">reinforcement learning</a> and <a href="guide-robotics-fundamentals.html">robotics fundamentals</a> cover what that layer does.</p></section>
+
+<section class="note-sec"><h2 id="three">What about System 3?</h2>
+
+<p>“System 3” is not an established term. The published systems I could find describe Systems 0, 1 and 2. The label is sometimes used informally for whatever sits above System 2, and that layer is real even where it has no agreed name.</p><ul><li><strong>Task planning.</strong> Breaking “tidy the kitchen” into an ordered list of jobs, over minutes.</li><li><strong>Memory.</strong> What has been done, where things were last seen, what the person asked for earlier.</li><li><strong>Tools and knowledge.</strong> Looking something up, asking a person, calling another model.</li><li><strong>Coordination.</strong> Several robots, or a schedule of tasks across a shift.</li></ul><p>This layer is usually a large language model running at most once a second, often off the robot, and it is the least standardised part of the stack. If you meet “System 3” in a talk or a paper, check what that author means by it. The note on <a href="guide-long-horizon.html">long-horizon methods</a> covers the techniques that live here.</p></section>
+
+<section class="note-sec"><h2 id="interface">The interface is the design</h2>
+
+<p>What System 2 hands to System 1 decides most of how a dual system behaves.</p><div class="tablewrap"><table class="gtable "><thead><tr><th>Interface</th><th>What is passed down</th><th>Strength</th><th>Weakness</th></tr></thead><tbody><tr><th>Language</th><td>A sub-task as text</td><td>Readable; the two models can be trained separately</td><td>Narrow: text cannot say exactly where or how</td></tr><tr><th>A latent vector</th><td>A learned summary of the scene and intent</td><td>Rich, and trained for the purpose</td><td>Opaque; the two halves must be trained together</td></tr><tr><th>Internal features</th><td>System 1 attends directly to System 2’s layers</td><td>Nothing is lost in a bottleneck</td><td>Tightly coupled; System 1 depends on the exact System 2</td></tr><tr><th>Goals</th><td>A target image, points or a trajectory sketch</td><td>Concrete and checkable</td><td>Needs a model that can produce good goals</td></tr></tbody></table></div>
+<p>The third row is <a href="guide-attention.html">shared attention</a>, and it is how several widely used policies attach a small action network to a large vision-language model. It blurs the line between one model and two: the parts run at different rates and are still trained as one.</p></section>
+
+<section class="note-sec"><h2 id="timing">Running at different speeds</h2>
+<ul><li><strong>The fast system uses a stale plan.</strong> System 1 acts many times on each output of System 2. It must be trained that way, with the delay it will see in deployment, or it will expect fresher guidance than it gets.</li><li><strong>The fast system needs its own eyes.</strong> If only System 2 sees the cameras, the fast loop is blind between updates. In the simulation above the fast loop’s own view of the target is what closes the gap.</li><li><strong>Asynchronous by design.</strong> The two run in separate loops. System 1 never waits for System 2. It uses whatever the latest output is.</li><li><strong>Caching.</strong> System 2’s result is computed once and reused, as the <a href="guide-deployment.html">deployment</a> note measures.</li><li><strong>Separate hardware.</strong> The large model can run on a bigger processor, or off the robot, while the fast loops stay on board and keep working if the link drops.</li></ul></section>
+
+<section class="note-sec"><h2 id="choose">One model or several</h2>
+<div class="tablewrap"><table class="gtable "><thead><tr><th></th><th>One model</th><th>Two or three systems</th></tr></thead><tbody><tr><th>Simplicity</th><td>One network, one training run</td><td>Interfaces, timing and several training recipes</td></tr><tr><th>Reaction time</th><td>Limited by the whole model</td><td>Set by the fast system</td></tr><tr><th>Reasoning</th><td>As good as the model, at every step</td><td>As good as System 2, a few times a second</td></tr><tr><th>Failure analysis</th><td>Hard to localise</td><td>A failure can often be assigned to a layer</td></tr><tr><th>Typical use</th><td>Arms at moderate rates, with action chunks covering the gap</td><td>Humanoids and anything needing balance or fast contact</td></tr></tbody></table></div><p>The two are closer than they look. A single model that produces one-second action chunks is already slow thinking followed by fast open-loop execution. A dual system makes the fast part closed-loop. As tasks demand quicker reactions, the field has moved from the first toward the second.</p></section>
+
+<section class="note-sec split2">
+<div><h2 id="mistakes">Common mistakes</h2><ul><li><strong>Giving only the slow system the cameras.</strong> The fast loop then cannot react to anything it was not told about.</li><li><strong>Training the fast system on fresh plans.</strong> Train it with the delay it will see when deployed.</li><li><strong>Assuming the labels are standard.</strong> System 0, and anything called System 3, mean different things to different groups.</li></ul></div>
+<div><h2 id="terms">Terms</h2><dl class="terms"><dt>System 2</dt><dd>The slow model that understands the scene and decides what to do.</dd><dt>System 1</dt><dd>The fast model that turns intent and vision into motion.</dd><dt>System 0</dt><dd>The fastest layer, handling balance, contact and joint tracking.</dd><dt>Dual-system architecture</dt><dd>A policy split into a slow reasoning model and a fast acting model.</dd><dt>Latent interface</dt><dd>A learned vector passed from the slow model to the fast one.</dd><dt>Asynchronous</dt><dd>Running in separate loops, with neither waiting for the other.</dd></dl></div></section>
+
+        <section class="note-sec split2 more"><div><h2>Further reading</h2><ul class="links"><li><a href="https://www.figure.ai/news/helix">Figure, 2025. Helix: A Vision-Language-Action Model for Generalist Humanoid Control.</a></li><li><a href="https://www.figure.ai/news/helix-02">Figure, 2026. Introducing Helix 02: Full-Body Autonomy.</a></li><li><a href="https://arxiv.org/abs/2503.14734">NVIDIA, 2025. GR00T N1: An Open Foundation Model for Generalist Humanoid Robots.</a></li><li><a href="https://arxiv.org/abs/2410.05273">Zhang et al., 2024. HiRT: Enhancing Robotic Control with Hierarchical Robot Transformers.</a></li><li><a href="https://arxiv.org/abs/2505.03912">Cui et al., 2025. OpenHelix: A Short Survey, Empirical Analysis, and Open-Source Dual-System VLA Model for Robotic Manipulation.</a></li><li><a href="https://arxiv.org/abs/2410.24164">Black et al., 2024. &pi;<sub>0</sub>: A Vision-Language-Action Flow Model for General Robot Control.</a></li><li>Kahneman, 2011. Thinking, Fast and Slow. Farrar, Straus and Giroux.</li></ul></div></section>
+        <nav class="pager" aria-label="Guide pages"><a href="guide-robot-policies.html"><span>Previous</span>Robot policies today</a><a class="pnext" href="guide-long-horizon.html"><span>Next</span>Long-horizon tasks</a></nav>
+      </article>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div>
+        <p class="foot-title">Get in touch</p>
+        <p>Interesting problems in robotics and machine learning, collaboration, or questions about past work.</p>
+      </div>
+      <div class="foot-links"><a href="mailto:matthew.wnuk@gmail.com">matthew.wnuk@gmail.com</a><a href="https://www.linkedin.com/in/matthewwnuk">LinkedIn</a><a href="https://github.com/wnukmat">GitHub</a><a href="https://huggingface.co/mwnuk">Hugging Face</a><a href="resume.html">Resume</a></div>
+    </div>
+  </footer>
+</body>
+</html>

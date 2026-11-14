@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Data efficiency and generalisation: a guide to deep learning and robotics | Matthew Wnuk</title>
+  <meta name="description" content="How much data a robot needs, what makes it need less, and what the result carries over to.">
+  <link rel="canonical" href="https://www.matthewwnuk.com/guide-data-efficiency.html">
+  <meta property="og:site_name" content="Matthew Wnuk">
+  <meta property="og:title" content="Data efficiency and generalisation: a guide to deep learning and robotics | Matthew Wnuk">
+  <meta property="og:description" content="How much data a robot needs, what makes it need less, and what the result carries over to.">
+  <meta property="og:url" content="https://www.matthewwnuk.com/guide-data-efficiency.html">
+  <meta property="og:image" content="https://www.matthewwnuk.com/img/headshot.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="site-name" href="./"><img src="favicon.svg" alt="" width="28" height="28">Matthew Wnuk</a>
+      <nav aria-label="Main">
+        <a href="./#work">Work</a>
+        <a href="guide.html" aria-current="page">Guide</a>
+        <a href="./#experience">Experience</a>
+        <a href="resume.html">Resume</a>
+        <a href="about.html">About</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+
+    <header class="case-head guide-head">
+      <div class="wrap">
+        <a class="back" href="guide.html">&larr; All topics</a>
+        <p class="eyebrow">Guide &middot; Robots &middot; Topic 22 of 31</p>
+        <h1>Data efficiency and generalisation</h1>
+        <p class="dek">How much data a robot needs, what makes it need less, and what the result carries over to.</p>
+        <p class="gmeta"><span>5 minute read</span><span class="assumes">Builds on: <a href="guide-robot-learning-basics.html">Robot learning basics</a>, <a href="guide-robot-data.html">Data for robots</a></span></p>
+      </div>
+    </header>
+    <div class="wrap note">
+      <aside class="toc card"><h2>In this note</h2><ol><li><a href="#questions">Two questions about any robot policy</a></li><li><a href="#curve">A learning curve you can run yourself</a></li><li><a href="#levers">What buys efficiency</a></li><li><a href="#how-much">How much is typical</a></li><li><a href="#axes">Generalisation is several things</a></li><li><a href="#measure">Measuring it</a></li><li><a href="#mistakes">Common mistakes</a></li></ol>
+        <h2>Key points</h2><ul class="keys"><li>Data efficiency is a curve, not a number. Compare methods at several data sizes.</li><li>Efficiency comes from knowledge that is cheaper than new demonstrations.</li><li>Spend the collection budget on variety. Name the axis when you say a model generalises.</li></ul></aside>
+      <article class="note-body">
+<section class="note-sec"><h2 id="questions">Two questions about any robot policy</h2>
+
+<p>Robot data is the most expensive ingredient in the field, so two questions follow every result. <strong>How much data did it take?</strong> That is data efficiency. <strong>What does it work on besides the data it saw?</strong> That is generalisation. They are linked: a method that generalises well needs fewer demonstrations of each new situation.</p>
+<p>Neither has a single-number answer. Data efficiency is a curve, success against the amount of data. Generalisation is a set of separate tests, one for each way the world can differ from the training set.</p></section>
+
+<section class="note-sec"><h2 id="curve">A learning curve you can run yourself</h2>
+
+<figure class="gfig card "><a class="zoom" href="img/guide/data_efficiency.png"><img src="img/guide/data_efficiency.png" width="1500" height="750" loading="lazy" alt="Left: a square workspace with a round obstacle and several curved paths from start dots to target stars. Right: closed-loop success against the number of demonstrations for four training setups. All four rise from under 15 percent at 2 demonstrations to about 98 percent at 200, and the setup with both additions is highest throughout."></a><figcaption>A small experiment, run for this note. A point robot must reach a target without touching the obstacle. A small network is trained by behaviour cloning and then run in the loop on 300 unseen start and target pairs. Lines are the mean of six runs.</figcaption></figure>
+<p>The grey line is plain behaviour cloning. The other lines add one thing each. <strong>Recovery data</strong> means the demonstrator was nudged off course while recording, so the data shows how to get back. <strong>Better inputs</strong> means the policy is given the target and obstacle positions relative to itself, which is the form of the problem that matters.</p><div class="tablewrap"><table class="gtable num"><thead><tr><th>Demonstrations</th><th>Plain</th><th>+ recovery data</th><th>+ better inputs</th><th>+ both</th></tr></thead><tbody><tr><th>10</th><td>12%</td><td>23%</td><td>19%</td><td>41%</td></tr><tr><th>20</th><td>33%</td><td>50%</td><td>49%</td><td>62%</td></tr><tr><th>50</th><td>75%</td><td>81%</td><td>80%</td><td>84%</td></tr><tr><th>200</th><td>98%</td><td>99%</td><td>98%</td><td>99%</td></tr></tbody></table></div>
+<p>Three things in this table hold well beyond the toy. The additions matter most when data is scarce: at 10 demonstrations they more than triple success. They combine. And they fade as data grows, because enough data teaches the same thing the hard way. A method that only looks better at one data size has not been shown to be more efficient.</p></section>
+
+<section class="note-sec"><h2 id="levers">What buys efficiency</h2>
+
+<p>Every lever below does the same job: it supplies knowledge from somewhere cheaper than new demonstrations.</p><div class="tablewrap"><table class="gtable "><thead><tr><th>Lever</th><th>Where the knowledge comes from</th><th>Limit</th></tr></thead><tbody><tr><th>Pretrained vision and language</th><td>Web images and text: what objects are and what words mean</td><td>Knows nothing about forces or the robot’s body</td></tr><tr><th>Pretrained robot policy</th><td>Thousands of hours of other robots’ data</td><td>Helps most when the new robot and tasks resemble the old</td></tr><tr><th>Co-training</th><td>Training on the new data together with larger related datasets</td><td>The mixture has to be weighted with care</td></tr><tr><th>Action chunking</th><td>Fewer decisions per task, so fewer chances to drift</td><td>Less reactive within a chunk</td></tr><tr><th>Augmentation</th><td>Known invariances: lighting, small shifts, colour</td><td>Cannot invent new behaviour</td></tr><tr><th>Recovery data and corrections</th><td>States the policy actually reaches when it errs</td><td>Needs a person in the loop</td></tr><tr><th>Better observations</th><td>A wrist camera, relative actions, body state</td><td>Has to be decided before data collection</td></tr><tr><th>Simulation and generated data</th><td>Physics engines and generative models</td><td>The gap to reality</td></tr><tr><th>Human video</th><td>People doing the task</td><td>No robot actions; they must be inferred</td></tr></tbody></table></div><p>The first two are why “pretrain once, adapt many times” took over robotics. The notes on <a href="guide-foundation-models.html">foundation models</a> and <a href="guide-robot-data.html">robot data</a> cover them in detail.</p></section>
+
+<section class="note-sec"><h2 id="how-much">How much is typical</h2>
+
+<p>Published results give rough orders of magnitude, not rules. A single task learned from scratch on one robot usually takes from tens to a few hundred demonstrations. Adapting a pretrained generalist policy to a new task takes a similar count and tends to give a more robust result. Working in places the robot has never seen is a different matter and depends on variety far more than on volume.</p>
+<p>One careful study of this (Lin and colleagues, 2024) collected over 40,000 demonstrations and found that success in new environments with new objects grew roughly as a power law in the number of <em>different</em> environments and objects trained on. More demonstrations in the same environment helped quickly at first and then stopped helping. Their practical recipe was many environments with a modest number of demonstrations each. The rule of thumb is to spend the collection budget on variety.</p></section>
+
+<section class="note-sec"><h2 id="axes">Generalisation is several things</h2>
+
+<figure class="gfig card "><a class="zoom" href="img/guide/generalisation.jpg"><img src="img/guide/generalisation.jpg" width="1500" height="791" loading="lazy" alt="Four robot camera frames in a row. The first is a training scene with groceries and a basket. The second has the same objects moved. The third has a different instruction. The fourth is a different scene with a stove and a moka pot."></a><figcaption>Frames from the LIBERO dataset, used here to show the kinds of change. Each step to the right asks more of the policy.</figcaption></figure><div class="tablewrap"><table class="gtable "><thead><tr><th>What changes</th><th>Why it is hard</th><th>What helps</th></tr></thead><tbody><tr><th>Object positions</th><td>The policy may have memorised where things were</td><td>Vary positions during collection; use a wrist camera</td></tr><tr><th>Object instances</th><td>A new mug has a new shape, colour and handle</td><td>Many instances per category; pretrained vision</td></tr><tr><th>Scene and lighting</th><td>Backgrounds leak into what the policy attends to</td><td>Many environments; augmentation</td></tr><tr><th>Instruction wording</th><td>The same task can be phrased many ways</td><td>A language-model backbone; paraphrased labels</td></tr><tr><th>Camera placement</th><td>The mapping from pixels to motion shifts</td><td>Fix the cameras, or vary them on purpose</td></tr><tr><th>Task</th><td>New combinations of known skills, or new skills</td><td>Broad multi-task data; the hardest of all</td></tr><tr><th>Robot body</th><td>Different joints, reach and gripper</td><td>Cross-embodiment training; shared action spaces</td></tr></tbody></table></div>
+<p>“The model generalises” means little until the axis is named. Policies today are strongest on the first four rows and weakest on the last two.</p></section>
+
+<section class="note-sec"><h2 id="measure">Measuring it</h2>
+<ul><li><strong>Report the curve.</strong> Give success at several data sizes, not one. State how many demonstrations and how many hours.</li><li><strong>Hold out one axis at a time.</strong> Test new positions, new objects and new scenes separately, so a failure can be traced.</li><li><strong>Compare at equal data.</strong> A method given more or better data has not been compared.</li><li><strong>Count pretraining.</strong> A model that needs 50 demonstrations after 10,000 hours of pretraining is efficient in new data, not in total data. Say which you mean.</li></ul><p>The <a href="guide-evaluation.html">evaluation</a> note covers how many trials each of these measurements needs.</p></section>
+
+<section class="note-sec split2">
+<div><h2 id="mistakes">Common mistakes</h2><ul><li><strong>Quoting one data size.</strong> Efficiency is the shape of the curve. One point cannot show it.</li><li><strong>Collecting volume without variety.</strong> A thousand demonstrations in one scene teach that scene.</li><li><strong>Testing on the training layout.</strong> Success where the objects stood during collection says little about anywhere else.</li></ul></div>
+<div><h2 id="terms">Terms</h2><dl class="terms"><dt>Data efficiency</dt><dd>How much task success a method gets from a given amount of data.</dd><dt>Learning curve</dt><dd>Performance plotted against the amount of training data.</dd><dt>In-distribution</dt><dd>Test conditions that resemble the training data.</dd><dt>Out-of-distribution</dt><dd>Test conditions that differ from the training data along some axis.</dd><dt>Co-training</dt><dd>Training on a small target dataset together with larger related ones.</dd><dt>Few-shot</dt><dd>Adapting to something new from a handful of examples.</dd></dl></div></section>
+
+        <section class="note-sec split2 more"><div><h2>In my work</h2><ul class="links"><li><a href="world-action-models.html">World-action models: learning from many robots</a></li></ul></div><div><h2>Further reading</h2><ul class="links"><li><a href="https://arxiv.org/abs/2410.18647">Lin et al., 2024. Data Scaling Laws in Imitation Learning for Robotic Manipulation.</a></li><li><a href="https://arxiv.org/abs/2405.12213">Octo Model Team, 2024. Octo: An Open-Source Generalist Robot Policy.</a></li><li><a href="https://arxiv.org/abs/2406.09246">Kim et al., 2024. OpenVLA: An Open-Source Vision-Language-Action Model.</a></li><li><a href="https://arxiv.org/abs/2504.16054">Physical Intelligence, 2025. &pi;<sub>0.5</sub>: a Vision-Language-Action Model with Open-World Generalization.</a></li></ul></div></section>
+        <nav class="pager" aria-label="Guide pages"><a href="guide-robot-data.html"><span>Previous</span>Data for robots</a><a class="pnext" href="guide-dexterous-hands.html"><span>Next</span>Dexterous hands</a></nav>
+      </article>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div>
+        <p class="foot-title">Get in touch</p>
+        <p>Interesting problems in robotics and machine learning, collaboration, or questions about past work.</p>
+      </div>
+      <div class="foot-links"><a href="mailto:matthew.wnuk@gmail.com">matthew.wnuk@gmail.com</a><a href="https://www.linkedin.com/in/matthewwnuk">LinkedIn</a><a href="https://github.com/wnukmat">GitHub</a><a href="https://huggingface.co/mwnuk">Hugging Face</a><a href="resume.html">Resume</a></div>
+    </div>
+  </footer>
+</body>
+</html>

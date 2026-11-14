@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sequence-to-sequence models: a guide to deep learning and robotics | Matthew Wnuk</title>
+  <meta name="description" content="One sequence in, another out: the bottleneck, attention, teacher forcing, decoding, and why robot control has the same shape.">
+  <link rel="canonical" href="https://www.matthewwnuk.com/guide-sequence-to-sequence.html">
+  <meta property="og:site_name" content="Matthew Wnuk">
+  <meta property="og:title" content="Sequence-to-sequence models: a guide to deep learning and robotics | Matthew Wnuk">
+  <meta property="og:description" content="One sequence in, another out: the bottleneck, attention, teacher forcing, decoding, and why robot control has the same shape.">
+  <meta property="og:url" content="https://www.matthewwnuk.com/guide-sequence-to-sequence.html">
+  <meta property="og:image" content="https://www.matthewwnuk.com/img/headshot.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="site-name" href="./"><img src="favicon.svg" alt="" width="28" height="28">Matthew Wnuk</a>
+      <nav aria-label="Main">
+        <a href="./#work">Work</a>
+        <a href="guide.html" aria-current="page">Guide</a>
+        <a href="./#experience">Experience</a>
+        <a href="resume.html">Resume</a>
+        <a href="about.html">About</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+
+    <header class="case-head guide-head">
+      <div class="wrap">
+        <a class="back" href="guide.html">&larr; All topics</a>
+        <p class="eyebrow">Guide &middot; Foundations &middot; Topic 5 of 31</p>
+        <h1>Sequence-to-sequence models</h1>
+        <p class="dek">One sequence in, another out: the bottleneck, attention, teacher forcing, decoding, and why robot control has the same shape.</p>
+        <p class="gmeta"><span>6 minute read</span><span class="assumes">Builds on: <a href="guide-transformer.html">The transformer</a></span></p>
+      </div>
+    </header>
+    <div class="wrap note">
+      <aside class="toc card"><h2>In this note</h2><ol><li><a href="#what">One sequence in, another out</a></li><li><a href="#shapes">Three designs</a></li><li><a href="#run">The bottleneck, measured</a></li><li><a href="#training">Training: teacher forcing and its cost</a></li><li><a href="#decoding">Decoding: choosing the output</a></li><li><a href="#which">Encoder-decoder or decoder only</a></li><li><a href="#robots">Robot control as sequence-to-sequence</a></li><li><a href="#mistakes">Common mistakes</a></li></ol>
+        <h2>Key points</h2><ul class="keys"><li>The question in every design is how the output side reaches the input side.</li><li>A single vector between encoder and decoder fails on long inputs; attention removes the limit.</li><li>Teacher forcing makes training fast and leaves the model unused to its own mistakes.</li></ul></aside>
+      <article class="note-body">
+<section class="note-sec"><h2 id="what">One sequence in, another out</h2>
+
+<p>A <strong>sequence-to-sequence</strong> model reads one sequence and writes another, and the two may differ in length. Translation is the original example: a sentence in, a sentence out. Summarising, transcribing speech, answering a question and writing code from a description are the same shape. So is robot control: a sequence of observations in, a sequence of actions out.</p>
+<p>The hard part is that there is no fixed alignment. The third word of the output need not correspond to the third word of the input, and the output can be longer or shorter. The history of these models is the history of how the output side gets access to the input side.</p></section>
+
+<section class="note-sec"><h2 id="shapes">Three designs</h2>
+
+<figure class="gfig card "><a class="zoom" href="img/guide/s2s_shapes.png"><img src="img/guide/s2s_shapes.png" width="1500" height="734" loading="lazy" alt="Three designs. Bottleneck: an encoder reads the input into a single vector, and a decoder writes the output from that vector. With attention: at every step the decoder looks back at all of the encoder’s outputs. Decoder only: input and output are one sequence read by a single causal transformer, and the output continues the prompt."></a><figcaption>The three designs in the order they appeared.</figcaption></figure><ul><li><strong>The bottleneck.</strong> An <strong>encoder</strong> reads the input and compresses it into one vector. A <strong>decoder</strong> writes the output from that vector, one token at a time. It was the first design to work end to end, and everything the decoder knows about the input has to fit in that one vector.</li><li><strong>Attention.</strong> Keep every encoder output, and let the decoder look back at all of them at every step, weighting them by relevance. Nothing has to be squeezed through a single vector. This is where attention was invented, three years before the transformer.</li><li><strong>Decoder only.</strong> Drop the separate encoder. Put the input and the output in one sequence and train a single causal model to continue it. The input is a prompt, and the output is whatever comes next.</li></ul></section>
+
+<section class="note-sec"><h2 id="run">The bottleneck, measured</h2>
+
+<figure class="gfig card "><a class="zoom" href="img/guide/s2s_length.png"><img src="img/guide/s2s_length.png" width="1500" height="654" loading="lazy" alt="Share of outputs that are entirely correct against input length for three models. The encoder-decoder with one vector between them falls from 98 percent at length 8 to 83 percent at 12, 50 percent at 16, 12 percent at 20 and zero from 24. The same model with attention stays at or above 98 percent to length 30. The transformer is at 100 percent throughout."></a><figcaption>Trained for this note. The task is to write the input sequence in reverse. All three models saw lengths from 3 to 30 in training. Mean of three runs.</figcaption></figure>
+<p>The three models were trained on the same data for the same number of steps. Without attention, accuracy collapses as the input grows: 98% at eight symbols, 50% at sixteen, nothing from twenty-four. The encoder’s single vector, 96 numbers here, cannot hold a long sequence precisely enough to reproduce it.</p>
+<p>Adding attention to the same recurrent model, a change of about 30,000 parameters, holds accuracy at 98% or better at every length. The transformer, which is attention throughout, makes no errors at all.</p>
+<figure class="gfig card narrow"><a class="zoom" href="img/guide/s2s_align.png"><img src="img/guide/s2s_align.png" width="906" height="935" loading="lazy" alt="A grid of attention weights for the model with attention reversing a twelve-symbol sequence. Input symbols run across the top and output symbols down the side. One dark cell per row forms a diagonal running from the last input symbol to the first."></a><figcaption>The attention weights of the middle model while reversing one sequence. Each row is one output step. The model has learned to walk backwards through the input, one position per step.</figcaption></figure>
+<p>Nobody told the model that reversal means reading the input backwards. The attention weights show that it found out. In translation the same picture shows which source words each output word was drawn from, which is why these weights were first called an alignment.</p></section>
+
+<section class="note-sec"><h2 id="training">Training: teacher forcing and its cost</h2>
+
+<p>The decoder predicts each token from the tokens before it. During training those earlier tokens are taken from the correct output, not from the model’s own predictions. This is <strong>teacher forcing</strong>. It lets every position be trained in parallel in a single pass, and it is why these models train efficiently.</p>
+<p>It also creates a mismatch. In training the model always sees a perfect history. In use it sees its own output, mistakes included, and one early error can send everything after it off course. This is <strong>exposure bias</strong>, and it is the same problem as compounding error in imitation learning: the model is never shown the states its own mistakes lead to. The remedies are the same too. Train on more varied data, occasionally feed the model its own predictions during training, or generate the output in a way that does not depend on a long chain of earlier choices.</p></section>
+
+<section class="note-sec"><h2 id="decoding">Decoding: choosing the output</h2>
+<div class="tablewrap"><table class="gtable "><thead><tr><th>Method</th><th>How it chooses</th><th>Good for</th><th>Weakness</th></tr></thead><tbody><tr><th>Greedy</th><td>The most probable token at each step</td><td>Speed; tasks with one right answer</td><td>An early poor choice cannot be undone</td></tr><tr><th>Beam search</th><td>Keeps the best few partial outputs and extends them all</td><td>Translation and transcription, where accuracy matters</td><td>Slower; tends toward short, bland text</td></tr><tr><th>Sampling</th><td>Draws from the predicted probabilities, often with a temperature or a cut-off</td><td>Open-ended writing, where variety matters</td><td>Can go wrong; not repeatable</td></tr><tr><th>Constrained</th><td>Allows only tokens that keep the output valid</td><td>Structured output such as code, coordinates or actions</td><td>Needs a description of what is valid</td></tr></tbody></table></div><p>For robot actions written as tokens, decoding is greedy or constrained, because a sampled outlier becomes a jerk of the arm.</p></section>
+
+<section class="note-sec"><h2 id="which">Encoder-decoder or decoder only</h2>
+<div class="tablewrap"><table class="gtable "><thead><tr><th></th><th>Encoder-decoder</th><th>Decoder only</th></tr></thead><tbody><tr><th>Input is read</th><td>In both directions, by a dedicated encoder</td><td>Left to right, as part of the same sequence</td></tr><tr><th>Parameters</th><td>Two stacks, with cross-attention between them</td><td>One stack</td></tr><tr><th>Reusing the input</th><td>The encoder’s output is computed once and attended to throughout</td><td>The key-value cache does the same job</td></tr><tr><th>Pretraining</th><td>Needs paired inputs and outputs, or a denoising task</td><td>Next-token prediction on any text</td></tr><tr><th>Where it is used</th><td>Translation, speech recognition, some robot policies</td><td>Language models, vision-language models, most new systems</td></tr></tbody></table></div>
+<p>Decoder-only models won mainly because of the fourth row. They can be pretrained on unlimited plain text and then asked to do any sequence-to-sequence task by phrasing it as a prompt. The encoder-decoder shape remains where the input and output are different kinds of thing and a specialised encoder helps.</p>
+<p>A third option skips the token-by-token chain entirely. <strong>Non-autoregressive</strong> models produce the whole output at once and refine it over a few passes. Diffusion and flow matching are of this kind, and they are how most robot policies now generate action chunks.</p></section>
+
+<section class="note-sec"><h2 id="robots">Robot control as sequence-to-sequence</h2>
+<ul><li><strong>Action chunking with a transformer.</strong> An encoder reads the camera images and joint positions. A decoder writes the next chunk of actions, all at once. This is the encoder-decoder shape applied directly.</li><li><strong>Actions as tokens.</strong> A decoder-only vision-language model continues its prompt with action tokens, exactly as it would continue a sentence.</li><li><strong>Instructions to plans.</strong> A sentence in, a list of sub-tasks out.</li><li><strong>Video to actions.</strong> A sequence of frames in, the actions that produced them out.</li></ul><p>Seeing control this way explains why so much carries over from language. The lessons about bottlenecks, exposure bias and decoding were learned on text first, and each has a direct counterpart on a robot. The notes on <a href="guide-attention.html">attention</a> and <a href="guide-robot-policies.html">robot policies</a> continue from here.</p></section>
+
+<section class="note-sec split2">
+<div><h2 id="mistakes">Common mistakes</h2><ul><li><strong>Judging by per-token accuracy.</strong> One wrong token can ruin an output. Score whole outputs.</li><li><strong>Forgetting the mismatch.</strong> A model that looks perfect with the correct history can still drift on its own output.</li><li><strong>Sampling where one answer is right.</strong> Use greedy or beam search for translation, transcription and actions.</li></ul></div>
+<div><h2 id="terms">Terms</h2><dl class="terms"><dt>Encoder</dt><dd>The part that reads the input sequence.</dd><dt>Decoder</dt><dd>The part that writes the output sequence, one token at a time.</dd><dt>Teacher forcing</dt><dd>Training the decoder on the correct earlier tokens instead of its own predictions.</dd><dt>Exposure bias</dt><dd>Errors that arise because the model never saw its own mistakes during training.</dd><dt>Beam search</dt><dd>Decoding that keeps several candidate outputs and extends the best of them.</dd><dt>Non-autoregressive</dt><dd>Producing the whole output at once instead of token by token.</dd></dl></div></section>
+
+        <section class="note-sec split2 more"><div><h2>Further reading</h2><ul class="links"><li><a href="https://arxiv.org/abs/1409.3215">Sutskever et al., 2014. Sequence to Sequence Learning with Neural Networks.</a></li><li><a href="https://arxiv.org/abs/1406.1078">Cho et al., 2014. Learning Phrase Representations using RNN Encoder-Decoder for Statistical Machine Translation.</a></li><li><a href="https://arxiv.org/abs/1409.0473">Bahdanau et al., 2014. Neural Machine Translation by Jointly Learning to Align and Translate.</a></li><li><a href="https://arxiv.org/abs/1706.03762">Vaswani et al., 2017. Attention Is All You Need.</a></li><li><a href="https://arxiv.org/abs/1506.03099">Bengio et al., 2015. Scheduled Sampling for Sequence Prediction with Recurrent Neural Networks.</a></li><li><a href="https://arxiv.org/abs/1910.10683">Raffel et al., 2019. Exploring the Limits of Transfer Learning with a Unified Text-to-Text Transformer (T5).</a></li><li><a href="https://arxiv.org/abs/2304.13705">Zhao et al., 2023. Learning Fine-Grained Bimanual Manipulation with Low-Cost Hardware (ACT).</a></li></ul></div></section>
+        <nav class="pager" aria-label="Guide pages"><a href="guide-attention.html"><span>Previous</span>Attention in depth</a><a class="pnext" href="guide-representation-learning.html"><span>Next</span>Representation learning</a></nav>
+      </article>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div>
+        <p class="foot-title">Get in touch</p>
+        <p>Interesting problems in robotics and machine learning, collaboration, or questions about past work.</p>
+      </div>
+      <div class="foot-links"><a href="mailto:matthew.wnuk@gmail.com">matthew.wnuk@gmail.com</a><a href="https://www.linkedin.com/in/matthewwnuk">LinkedIn</a><a href="https://github.com/wnukmat">GitHub</a><a href="https://huggingface.co/mwnuk">Hugging Face</a><a href="resume.html">Resume</a></div>
+    </div>
+  </footer>
+</body>
+</html>
