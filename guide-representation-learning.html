@@ -41,32 +41,47 @@
         <p class="eyebrow">Guide &middot; Models &middot; Topic 4 of 15</p>
         <h1>Representation learning</h1>
         <p class="dek">How models learn useful features from data with no labels.</p>
-        <p class="gmeta"><span>2 minute read</span></p>
+        <p class="gmeta"><span>3 minute read</span></p>
       </div>
     </header>
     <div class="wrap note">
-      <aside class="toc card"><h2>In this note</h2><ol><li><a href="#s14">Self-supervised learning: labels made from the data itself</a></li><li><a href="#s15">Vision encoders: the eyes of every modern system</a></li><li><a href="#s16">Predicting in feature space: JEPA and embeddings</a></li></ol>
+      <aside class="toc card"><h2>In this note</h2><ol><li><a href="#ssl">Labels made from the data itself</a></li><li><a href="#encoders">Vision encoders: the eyes of every modern system</a></li><li><a href="#jepa">Predicting in feature space</a></li><li><a href="#retrieval">Embeddings and retrieval</a></li><li><a href="#mistakes">Common mistakes</a></li></ol>
         <h2>Key points</h2><ul class="keys"><li>Self-supervision is why models can train on billions of images and hours of video.</li><li>Choose the encoder by what the features must capture: meaning in words, or geometry and detail.</li><li>Good embeddings turn hard problems into nearest-neighbour lookups.</li></ul></aside>
       <article class="note-body">
-<section class="note-sec"><h2 id="s14">Self-supervised learning: labels made from the data itself</h2>
-<p class="lede">The model learns useful features by solving a task we can generate automatically, with no human labels.</p>
-<figure class="gfig card slide"><img src="img/guide/s14.jpg" width="1500" height="586" loading="lazy" alt="Self-supervised learning: labels made from the data itself"></figure>
-<p>The common thread: invent a prediction problem where the answer is already in the data. Masked modeling is how language models and masked autoencoders train. Contrastive learning needs pairs; CLIP uses hundreds of millions of image and caption pairs from the web. Self-distillation sounds circular, but the teacher is an average of past student weights and sees a different view of the image, which is enough to learn good features.</p>
-<p class="key"><span>Key point</span>Self-supervision is why models can train on billions of images and hours of video.</p></section>
+<section class="note-sec"><h2 id="ssl">Labels made from the data itself</h2>
 
-<section class="note-sec"><h2 id="s15">Vision encoders: the eyes of every modern system</h2>
-<p class="lede">A vision encoder turns an image into a set of feature vectors that other models consume.</p>
-<figure class="gfig card slide"><img src="img/guide/s15.jpg" width="1500" height="586" loading="lazy" alt="Vision encoders: the eyes of every modern system"></figure>
-<p>Many current vision-language-action models feed two encoders at once: a language-aligned one such as SigLIP for semantics and a DINO-style one for spatial precision. This is a practical example of choosing features for the job. ViT is not a training method; it is the transformer architecture applied to image patches.</p>
-<p class="key"><span>Key point</span>Choose the encoder by what the features must capture: meaning in words, or geometry and detail.</p></section>
+<p>Labelled data is expensive. Self-supervised learning avoids labels by inventing a prediction problem whose answer is already in the data. This is why models can train on billions of images and hours of video. Three recipes dominate.</p>
+<h3>Masked modeling</h3>
+<p>Hide part of the input and predict the missing part. For text, that means predicting hidden or next words. For images and video, it means predicting hidden patches. The model has to learn structure and context to fill the gaps.</p>
+<figure class="gfig card narrow"><img src="img/guide/ijepa_blocks.jpg" width="1116" height="908" loading="lazy" alt="A night street photo with one large visible block outlined in blue and four smaller hidden blocks outlined in orange"><figcaption>One image, a visible context block and several hidden target blocks to be predicted.</figcaption></figure>
+<h3>Contrastive learning</h3>
+<p>Take two things known to belong together and make their embeddings match, while pushing apart the embeddings of things that do not. With images and their captions as the pairs, this gives CLIP-style models.</p>
+<figure class="gfig card narrow"><img src="img/guide/clip_matrix.jpg" width="1062" height="994" loading="lazy" alt="An eight by eight grid of image and caption pairs with the diagonal cells highlighted"><figcaption>A batch of eight images and eight captions. Each image must pick its own caption: the diagonal is the truth and every other cell is a wrong pairing to reject.</figcaption></figure>
+<h3>Self-distillation</h3>
+<p>A student network predicts the output of a teacher that is a slowly updated copy of itself, seeing a different view of the same image. It sounds circular, but it works, and it gives the strong visual features of the DINO family. The slow teacher is essential.</p>
+<figure class="gfig card "><img src="img/guide/collapse.jpg" width="1500" height="499" loading="lazy" alt="Two curves of representation variance during training: one stays high, the other decays toward zero"><figcaption>A toy experiment. With a slowly updated teacher the features stay varied; with gradients through both branches they collapse to a constant.</figcaption></figure></section>
 
-<section class="note-sec"><h2 id="s16">Predicting in feature space: JEPA and embeddings</h2>
-<p class="lede">Instead of predicting every pixel, predict the representation of what is missing or what comes next.</p>
-<figure class="gfig card slide"><img src="img/guide/s16.jpg" width="1500" height="586" loading="lazy" alt="Predicting in feature space: JEPA and embeddings"></figure>
-<p>JEPA is associated with Yann LeCun&#x27;s group; I-JEPA for images and V-JEPA for video. The argument: a model forced to predict pixels wastes capacity on detail that does not matter for decisions. For robots this is attractive because what matters is where objects will be, not the exact texture of the table. Embedding retrieval is how product search, face matching and warehouse item identification work.</p>
-<p class="key"><span>Key point</span>Good embeddings turn hard problems into nearest-neighbour lookups.</p></section>
+<section class="note-sec"><h2 id="encoders">Vision encoders: the eyes of every modern system</h2>
 
-        <section class="note-sec split2 more"><div><h2>In my work</h2><ul class="links"><li><a href="caseid.html">CaseID: metric learning on a foundation model</a></li><li><a href="maritime-retrieval.html">Maritime retrieval: contrastive learning across sensors</a></li></ul></div></section>
+<p>A vision encoder turns an image into a set of feature vectors that other models consume. Almost all of them are Vision Transformers. What differs is how they were trained, and that decides what their features are good at.</p><div class="tablewrap"><table class="gtable "><thead><tr><th>Encoder family</th><th>Trained by</th><th>Its features are good at</th><th>Typical use in robotics</th></tr></thead><tbody><tr><th>CLIP and SigLIP</th><td>Matching images with captions</td><td>Meaning that lines up with language</td><td>Vision-language models, open-vocabulary recognition</td></tr><tr><th>DINO family</th><td>Self-distillation on images only</td><td>Fine spatial detail, parts, correspondence</td><td>Manipulation features, tracking, depth</td></tr><tr><th>Masked autoencoders</th><td>Reconstructing hidden patches</td><td>Low-level structure</td><td>Pretraining on unlabelled domain data</td></tr><tr><th>Video encoders</th><td>Masked or predictive training on clips</td><td>Motion and change over time</td><td>Dynamics, world models</td></tr></tbody></table></div>
+<figure class="gfig card "><img src="img/guide/clip_zeroshot.jpg" width="1500" height="417" loading="lazy" alt="Three photos labelled mug, basketball and dog by comparing each image with text prompts"><figcaption>A language-aligned encoder classifies with no task training: compare the image embedding with the embedding of each candidate label.</figcaption></figure>
+<p>Many current robot models feed two encoders at once: a language-aligned one for meaning and a DINO-style one for spatial precision. Choose the encoder by what the features must capture.</p></section>
+
+<section class="note-sec"><h2 id="jepa">Predicting in feature space</h2>
+
+<p>A model forced to predict every pixel spends capacity on detail that cannot be predicted and does not matter, such as texture and sensor noise. A joint-embedding predictive architecture, or JEPA, predicts the <em>representation</em> of the hidden or future part instead.</p>
+<figure class="gfig card narrow"><img src="img/guide/g-jepa.jpg" width="1416" height="814" loading="lazy" alt="Visible input goes through an encoder and a predictor; hidden input goes through a slow target encoder; a loss compares the two embeddings"><figcaption>Predict the embedding of the hidden part from the visible part.</figcaption></figure>
+<p>For robots this is attractive. What matters for a decision is where the cup will be, not the grain of the table under it.</p></section>
+
+<section class="note-sec"><h2 id="retrieval">Embeddings and retrieval</h2>
+
+<p>Once similar things land close together in embedding space, hard problems turn into nearest-neighbour lookups. Search becomes &ldquo;find the closest vectors&rdquo;. Metric learning trains that distance directly, and it is how product search, re-identification and warehouse item matching work.</p></section>
+
+<section class="note-sec split2">
+<div><h2 id="mistakes">Common mistakes</h2><ul><li><strong>Using one encoder for everything.</strong> A language-aligned encoder can be weak on fine spatial detail, and the reverse.</li><li><strong>Assuming features transfer.</strong> Features learned on web photos can miss what matters in your domain, such as packaging or radar imagery.</li><li><strong>Ignoring collapse.</strong> Self-supervised training can quietly converge to a constant output. Monitor the variance of the features.</li></ul></div>
+<div><h2 id="terms">Terms</h2><dl class="terms"><dt>Embedding</dt><dd>A vector that represents an input so that similar inputs are close.</dd><dt>Pretext task</dt><dd>The invented prediction problem used for self-supervision.</dd><dt>Collapse</dt><dd>When every input maps to nearly the same embedding.</dd><dt>Zero-shot</dt><dd>Doing a task with no training examples for it.</dd></dl></div></section>
+
+        <section class="note-sec split2 more"><div><h2>In my work</h2><ul class="links"><li><a href="caseid.html">CaseID: metric learning on a foundation model</a></li><li><a href="maritime-retrieval.html">Maritime retrieval: contrastive learning across sensors</a></li></ul></div><div><h2>Further reading</h2><ul class="links"><li><a href="https://arxiv.org/abs/2103.00020">Radford et al., 2021. Learning Transferable Visual Models From Natural Language Supervision (CLIP).</a></li><li><a href="https://arxiv.org/abs/2303.15343">Zhai et al., 2023. Sigmoid Loss for Language Image Pre-Training (SigLIP).</a></li><li><a href="https://arxiv.org/abs/2304.07193">Oquab et al., 2023. DINOv2: Learning Robust Visual Features without Supervision.</a></li><li><a href="https://arxiv.org/abs/2301.08243">Assran et al., 2023. Self-Supervised Learning from Images with a Joint-Embedding Predictive Architecture (I-JEPA).</a></li></ul></div></section>
         <nav class="pager" aria-label="Guide pages"><a href="guide-transformer.html"><span>Previous</span>The transformer</a><a class="pnext" href="guide-generative-modeling.html"><span>Next</span>Generative modeling</a></nav>
       </article>
     </div>

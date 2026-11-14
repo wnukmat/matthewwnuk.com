@@ -41,44 +41,47 @@
         <p class="eyebrow">Guide &middot; Foundations &middot; Topic 2 of 15</p>
         <h1>Foundations that survived</h1>
         <p class="dek">The training loop, learning rates, losses, overfitting and the stabilisers that make deep networks trainable.</p>
-        <p class="gmeta"><span>3 minute read</span></p>
+        <p class="gmeta"><span>4 minute read</span></p>
       </div>
     </header>
     <div class="wrap note">
-      <aside class="toc card"><h2>In this note</h2><ol><li><a href="#s5">The training loop: four steps, repeated millions of times</a></li><li><a href="#s6">Learning rate: warm up, then decay</a></li><li><a href="#s7">Loss functions: telling the model what &quot;wrong&quot; means</a></li><li><a href="#s8">Overfitting, underfitting and capacity</a></li><li><a href="#s9">The stabilisers: regularisation, normalisation and residuals</a></li></ol>
+      <aside class="toc card"><h2>In this note</h2><ol><li><a href="#loop">The training loop</a></li><li><a href="#lr">Learning rate: warm up, then decay</a></li><li><a href="#loss">Loss functions: telling the model what &ldquo;wrong&rdquo; means</a></li><li><a href="#overfit">Overfitting and capacity</a></li><li><a href="#stabilisers">The stabilisers</a></li><li><a href="#mistakes">Common mistakes</a></li></ol>
         <h2>Key points</h2><ul class="keys"><li>Training is a search for weights that make the loss small on data the model has not memorised.</li><li>If training diverges or stalls, look at the learning rate before anything else.</li><li>Pick the loss that matches the kind of output: a class, a number, a distribution, or a similarity.</li><li>Watch the gap between training and validation loss; that gap is overfitting.</li><li>Residual connections and normalisation make deep models trainable; regularisation makes them generalise.</li></ul></aside>
       <article class="note-body">
-<section class="note-sec"><h2 id="s5">The training loop: four steps, repeated millions of times</h2>
-<p class="lede">Every model in this deck, from a small classifier to a robot foundation model, is trained this way.</p>
-<figure class="gfig card slide"><img src="img/guide/s05.jpg" width="1500" height="586" loading="lazy" alt="The training loop: four steps, repeated millions of times"></figure>
-<p>Forward pass: the model turns a batch of inputs into predictions. Loss: one number that says how wrong the predictions are. Backward pass: backpropagation applies the chain rule to find how much each weight contributed to the loss; that is the gradient. Update: the optimizer nudges every weight a small step against its gradient. AdamW is the default optimizer today: it scales each weight&#x27;s step by its own gradient history and applies weight decay separately.</p>
-<p class="key"><span>Key point</span>Training is a search for weights that make the loss small on data the model has not memorised.</p></section>
+<section class="note-sec"><h2 id="loop">The training loop</h2>
 
-<section class="note-sec"><h2 id="s6">Learning rate: warm up, then decay</h2>
-<p class="lede">The learning rate is the size of each update step, and it is the most important number you will tune.</p>
-<figure class="gfig card slide"><img src="img/guide/s06.jpg" width="1500" height="586" loading="lazy" alt="Learning rate: warm up, then decay"></figure>
-<p>Warmup matters most for transformers. The curve is illustrative: a short linear ramp followed by a cosine. Important check for later: make sure the model reaches its plateau while the learning rate is still meaningfully above zero. A metric that stops improving only because the schedule reached zero is not converged.</p>
-<p class="key"><span>Key point</span>If training diverges or stalls, look at the learning rate before anything else.</p></section>
+<p>Every model in this guide, from a small classifier to a robot foundation model, is trained the same way: four steps, repeated millions of times.</p>
+<figure class="gfig card "><img src="img/guide/g-loop.jpg" width="1500" height="238" loading="lazy" alt="Four boxes in a row: forward pass, loss, backward pass, update, with an arrow looping back to the start"><figcaption>One step of training. The loop repeats with the next batch of data.</figcaption></figure>
+<p>The <strong>forward pass</strong> turns a batch of inputs into predictions. The <strong>loss</strong> scores how wrong those predictions are, as a single number. The <strong>backward pass</strong>, called backpropagation, applies the chain rule layer by layer to find how much each weight contributed to the loss. That is the gradient. The <strong>update</strong> nudges every weight a small step against its gradient.</p>
+<p>The optimizer decides the size of that step. <strong>AdamW</strong> is the default today. It keeps a running average of each weight&rsquo;s gradient and of its size, which gives every weight its own step size, and it applies weight decay, a gentle pull toward zero, as a separate step.</p></section>
 
-<section class="note-sec"><h2 id="s7">Loss functions: telling the model what &quot;wrong&quot; means</h2>
-<p class="lede">The loss is the only signal the model gets, so choosing it is choosing what the model cares about.</p>
-<figure class="gfig card slide"><img src="img/guide/s07.jpg" width="1500" height="586" loading="lazy" alt="Loss functions: telling the model what &quot;wrong&quot; means"></figure>
-<p>Cross entropy is what every language model trains with: predict the next token. MSE predicts the mean, which is why naive action regression blurs between two valid ways to do a task; that problem is what diffusion policies solve later in the deck. Contrastive losses do not need labels, only pairs known to match.</p>
-<p class="key"><span>Key point</span>Pick the loss that matches the kind of output: a class, a number, a distribution, or a similarity.</p></section>
+<section class="note-sec"><h2 id="lr">Learning rate: warm up, then decay</h2>
 
-<section class="note-sec"><h2 id="s8">Overfitting, underfitting and capacity</h2>
-<p class="lede">The goal is low error on data the model has never seen, not on the data it trained on.</p>
-<figure class="gfig card slide"><img src="img/guide/s08.jpg" width="1500" height="586" loading="lazy" alt="Overfitting, underfitting and capacity"></figure>
-<p>This is the one content slide that existed in the old deck. The classic picture still holds for small data: stop when validation loss turns up. The modern caveat is that heavily over-parameterised models trained on huge datasets can pass through the overfitting regime and improve again, which is called double descent. For junior engineers the practical rule is simple: always hold out data, and always plot both curves.</p>
-<p class="key"><span>Key point</span>Watch the gap between training and validation loss; that gap is overfitting.</p></section>
+<p>The learning rate is the size of each update, and it is the most important number you will tune.</p>
+<figure class="gfig card narrow"><img src="img/guide/g-lr.jpg" width="1456" height="814" loading="lazy" alt="A learning-rate curve that rises quickly from zero to a peak and then falls smoothly back to zero"><figcaption>An illustrative schedule: a short linear warmup, then cosine decay.</figcaption></figure>
+<p>Training starts near zero and ramps up, because early gradients are noisy and large steps can wreck a model before it has found its footing. The rate then decays smoothly so the model can settle. If the loss jumps or becomes NaN, the rate is too high. If the loss falls very slowly, it is too low.</p>
+<p>One trap is worth knowing early. A metric that stops improving only because the schedule has reached zero has not converged. Check that the model levelled off while the learning rate was still meaningfully above zero.</p></section>
 
-<section class="note-sec"><h2 id="s9">The stabilisers: regularisation, normalisation and residuals</h2>
-<p class="lede">Three small ideas that make deep networks trainable and keep them from memorising.</p>
-<figure class="gfig card slide"><img src="img/guide/s09.jpg" width="1500" height="586" loading="lazy" alt="The stabilisers: regularisation, normalisation and residuals"></figure>
-<p>L1 and elastic net from the old deck are rarely used in deep learning now; weight decay is the form of L2 that survived. Augmentation is especially important in robotics because robot data is scarce: random crops and colour jitter make policies more robust to camera changes. Residual connections come from ResNet (2015) and are in every transformer.</p>
-<p class="key"><span>Key point</span>Residual connections and normalisation make deep models trainable; regularisation makes them generalise.</p></section>
+<section class="note-sec"><h2 id="loss">Loss functions: telling the model what &ldquo;wrong&rdquo; means</h2>
 
-        
+<p>The loss is the only signal the model gets, so choosing it is choosing what the model cares about. Pick the one that matches the kind of output.</p><div class="tablewrap"><table class="gtable "><thead><tr><th>Loss</th><th>Use it when the output is</th><th>Intuition</th><th>Where you will see it</th></tr></thead><tbody><tr><th>Cross entropy</th><td>One of several classes, or the next token</td><td>Penalises low probability on the correct answer</td><td>Classifiers, language models, action tokens</td></tr><tr><th>MSE</th><td>A continuous number</td><td>Penalises large errors heavily; predicts the average</td><td>Regression, diffusion and flow-matching targets</td></tr><tr><th>L1 or Huber</th><td>A continuous number with outliers</td><td>Penalises errors evenly</td><td>Action regression, depth, boxes</td></tr><tr><th>KL divergence</th><td>A probability distribution</td><td>How different two distributions are</td><td>VAEs, distillation from a teacher</td></tr><tr><th>Contrastive</th><td>An embedding</td><td>Pull matching pairs together, push the rest apart</td><td>CLIP-style models, retrieval</td></tr></tbody></table></div>
+<p>The second row matters for robots. MSE predicts the mean, so a policy trained with it averages two valid ways of doing a task. The note on <a href="guide-robot-policies.html">robot policies</a> shows why that fails.</p></section>
+
+<section class="note-sec"><h2 id="overfit">Overfitting and capacity</h2>
+
+<figure class="gfig card narrow"><img src="img/guide/g-overfit.jpg" width="1456" height="814" loading="lazy" alt="Training loss keeps falling over forty epochs while validation loss falls and then rises again"><figcaption>An illustrative run. The gap that opens between the two curves is overfitting.</figcaption></figure>
+<p>The goal is low error on data the model has never seen. <strong>Capacity</strong> is how complex a function the model can represent, roughly its number of parameters. A model that is too small, or a broken training run, gives high loss on both training and validation data. That is underfitting. A model that memorises shows training loss still falling while validation loss rises. That is overfitting.</p>
+<p>The modern twist is that very large models trained on very large datasets often keep generalising past the point where the classic picture says they should fail, an effect called double descent. The practical rule has not changed: hold out data, plot both curves, and reach for more data before anything else.</p></section>
+
+<section class="note-sec"><h2 id="stabilisers">The stabilisers</h2>
+
+<p>Three small ideas make deep networks trainable and keep them from memorising.</p><ul><li><strong>Regularisation.</strong> Weight decay pulls weights toward zero. Dropout randomly silences units during training. Augmentation, such as random crops and colour shifts, acts as free extra data and matters a great deal when robot data is scarce. Early stopping keeps the checkpoint with the best validation score.</li><li><strong>Normalisation.</strong> It keeps the numbers flowing through the network at a steady scale. Transformers use LayerNorm or RMSNorm; older convolutional networks use BatchNorm.</li><li><strong>Residual connections.</strong> Each layer adds a correction to its input, so the output is x + f(x). Gradients get a direct path back to the early layers, which is what allows networks hundreds of layers deep.</li></ul></section>
+
+<section class="note-sec split2">
+<div><h2 id="mistakes">Common mistakes</h2><ul><li><strong>Tuning everything except the learning rate.</strong> If training diverges or stalls, look there first.</li><li><strong>Stopping at the step budget.</strong> A run is finished when the validation curve has flattened, not when the counter runs out.</li><li><strong>Reading the training loss alone.</strong> It always improves. Only the validation curve says whether the model is learning or memorising.</li></ul></div>
+<div><h2 id="terms">Terms</h2><dl class="terms"><dt>Gradient</dt><dd>How the loss changes as each weight changes.</dd><dt>Batch</dt><dd>The handful of samples used for one update.</dd><dt>Epoch</dt><dd>One full pass over the training data.</dd><dt>Weight decay</dt><dd>A small pull of every weight toward zero at each step.</dd></dl></div></section>
+
+        <section class="note-sec split2 more"><div><h2>Further reading</h2><ul class="links"><li><a href="https://arxiv.org/abs/1711.05101">Loshchilov and Hutter, 2017. Decoupled Weight Decay Regularization (AdamW).</a></li><li><a href="https://arxiv.org/abs/1512.03385">He et al., 2015. Deep Residual Learning for Image Recognition.</a></li><li><a href="https://arxiv.org/abs/1912.02292">Nakkiran et al., 2019. Deep Double Descent.</a></li></ul></div></section>
         <nav class="pager" aria-label="Guide pages"><a href="guide-things-i-know.html"><span>Previous</span>Things I know</a><a class="pnext" href="guide-transformer.html"><span>Next</span>The transformer</a></nav>
       </article>
     </div>

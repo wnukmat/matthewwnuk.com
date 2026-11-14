@@ -41,32 +41,39 @@
         <p class="eyebrow">Guide &middot; Practice &middot; Topic 13 of 15</p>
         <h1>Deployment on the robot</h1>
         <p class="dek">Making the model small enough and fast enough, then learning from the field.</p>
-        <p class="gmeta"><span>2 minute read</span></p>
+        <p class="gmeta"><span>3 minute read</span></p>
       </div>
     </header>
     <div class="wrap note">
-      <aside class="toc card"><h2>In this note</h2><ol><li><a href="#s45">Making the model fit: quantisation, pruning, distillation</a></li><li><a href="#s46">The latency budget: answer before the world moves on</a></li><li><a href="#s47">The data flywheel: the best data comes from deployment</a></li></ol>
+      <aside class="toc card"><h2>In this note</h2><ol><li><a href="#fit">Making the model fit</a></li><li><a href="#latency">The latency budget</a></li><li><a href="#flywheel">The data flywheel</a></li><li><a href="#mistakes">Common mistakes</a></li></ol>
         <h2>Key points</h2><ul class="keys"><li>Quantisation is the first tool to reach for; always re-measure task success afterwards.</li><li>Latency is a correctness issue: an action computed from an old image is an action for a world that no longer exists.</li><li>The team that turns field failures into training data fastest improves fastest.</li></ul></aside>
       <article class="note-body">
-<section class="note-sec"><h2 id="s45">Making the model fit: quantisation, pruning, distillation</h2>
-<p class="lede">A model that needs a data-centre GPU is no use on a battery-powered robot.</p>
-<figure class="gfig card slide"><img src="img/guide/s45.jpg" width="1500" height="586" loading="lazy" alt="Making the model fit: quantisation, pruning, distillation"></figure>
-<p>FP16 inference is widely supported and usually lossless in practice, though long accumulations and certain normalisation layers need care. INT8 requires representative calibration data to choose the ranges. On robot accelerators, the supported operations and precisions are fixed by the hardware, so check them early. The closed-loop check matters because a tiny per-step error in actions can accumulate over hundreds of steps.</p>
-<p class="key"><span>Key point</span>Quantisation is the first tool to reach for; always re-measure task success afterwards.</p></section>
+<section class="note-sec"><h2 id="fit">Making the model fit</h2>
 
-<section class="note-sec"><h2 id="s46">The latency budget: answer before the world moves on</h2>
-<p class="lede">The model&#x27;s answer always arrives late; the design goal is to make that harmless.</p>
-<figure class="gfig card slide"><img src="img/guide/s46.jpg" width="1500" height="586" loading="lazy" alt="The latency budget: answer before the world moves on"></figure>
-<p>The timeline is from my pi-zero video and uses the timing table in the pi-zero paper: images are encoded once into 768 tokens and cached, the action expert then runs ten Euler steps over 51 tokens each, and the result is 50 actions. On-board total is 73 milliseconds; with an off-board GPU it is 86 milliseconds including 13 for the network. Real-time chunking is a later technique for blending a late-arriving chunk into the actions already being executed.</p>
-<p class="key"><span>Key point</span>Latency is a correctness issue: an action computed from an old image is an action for a world that no longer exists.</p></section>
+<p>A model that needs a data-centre GPU is no use on a battery-powered robot. There are three ways to shrink one.</p><ul><li><strong>Quantisation.</strong> Store and compute with fewer bits per number. It is the first tool to reach for.</li><li><strong>Pruning.</strong> Remove weights, attention heads or whole layers that contribute little.</li><li><strong>Distillation.</strong> Train a small student to copy a large teacher&rsquo;s outputs.</li></ul>
+<figure class="gfig card "><img src="img/guide/quant_formats.jpg" width="1500" height="397" loading="lazy" alt="Rows of coloured squares showing the sign, exponent and mantissa bits of FP32, BF16, FP16, FP8 and FP4 number formats"><figcaption>Number formats, bit by bit. Fewer bits mean less memory and faster inference, and less range or precision.</figcaption></figure>
+<p>Sixteen-bit inference is usually free in practice. Eight-bit integers need representative calibration data to choose their ranges. Below that, care is needed, because of how low-bit scales behave.</p>
+<figure class="gfig card narrow"><img src="img/guide/quant_outlier.jpg" width="1500" height="601" loading="lazy" alt="A histogram of weights clustered near zero with a single outlier far to the right"><figcaption>One outlier stretches a 4-bit scale so far that almost all the weights are crushed into two levels.</figcaption></figure>
+<figure class="gfig card small"><img src="img/guide/quant_knee.jpg" width="986" height="742" loading="lazy" alt="A curve of quality loss rising steeply as bits per weight fall below four"><figcaption>The shape of the trade-off, drawn schematically: nearly free at 8 bits, careful work at 4, a cliff at 3.</figcaption></figure>
+<p>Always re-measure task success afterwards. A tiny numerical error in each action can accumulate over hundreds of control steps, so compare closed-loop success, not just how far the outputs moved. On robot accelerators the supported operations and precisions are fixed by the hardware, so check them early.</p></section>
 
-<section class="note-sec"><h2 id="s47">The data flywheel: the best data comes from deployment</h2>
-<p class="lede">A deployed robot meets situations the training set never covered; capture them and feed them back.</p>
-<figure class="gfig card slide"><img src="img/guide/s47.jpg" width="1500" height="586" loading="lazy" alt="The data flywheel: the best data comes from deployment"></figure>
-<p>Performance monitoring was the last box of the old pipeline diagram. Today it is the start of the next training cycle. Human interventions are especially useful: the moment an operator takes over marks exactly where the policy was wrong, and the correction is a demonstration of how to recover.</p>
-<p class="key"><span>Key point</span>The team that turns field failures into training data fastest improves fastest.</p></section>
+<section class="note-sec"><h2 id="latency">The latency budget</h2>
 
-        <section class="note-sec split2 more"><div><h2>In my work</h2><ul class="links"><li><a href="caseid.html">CaseID: the full pipeline on a Jetson</a></li><li><a href="retail-applications.html">Retail applications: models at the edge</a></li></ul></div></section>
+<p>The model&rsquo;s answer always arrives late. The design goal is to make that harmless.</p>
+<figure class="gfig card "><img src="img/guide/control_cycle.jpg" width="1500" height="628" loading="lazy" alt="A timeline of one control cycle: camera frames, a single VLM encoding step, ten short action-expert steps, then fifty actions sent to the robot"><figcaption>One control cycle of the &pi;<sub>0</sub> model, from the timing table in its paper. Figure from my video on it.</figcaption></figure>
+<p>In this example the images are encoded once and cached, the small action expert then runs ten short steps, and the result is fifty actions: one second of motion at 50 Hz, produced by 73 milliseconds of computation. The next chunk is ready long before the current one runs out.</p><ul><li><strong>Chunk and overlap.</strong> Each call returns a stretch of motion, so the next call can run while this one executes.</li><li><strong>Asynchronous inference.</strong> Motion never pauses to wait for the model.</li><li><strong>Real-time chunking.</strong> Plan the new chunk knowing it will arrive late, and blend it into the actions already committed.</li><li><strong>Split the work.</strong> Run the large model a few times a second and only the small action network every cycle.</li></ul><p>Latency is a correctness issue. An action computed from an old image is an action for a world that no longer exists.</p></section>
+
+<section class="note-sec"><h2 id="flywheel">The data flywheel</h2>
+
+<figure class="gfig card narrow"><img src="img/guide/g-flywheel.jpg" width="1436" height="814" loading="lazy" alt="A loop of six boxes: deploy, monitor, collect, retrain, curate, release check"><figcaption>Deployment is the start of the next training cycle.</figcaption></figure>
+<p>A deployed robot meets situations the training set never covered. Monitor task outcomes, drift in the inputs such as new lighting or a moved camera, signals from the model such as low confidence, and system health such as latency. Then capture what went wrong and feed it back.</p>
+<p>Failures and human interventions are the most valuable episodes to keep. The moment an operator takes over marks exactly where the policy was wrong, and the correction is a demonstration of how to recover. The team that turns field failures into training data fastest improves fastest.</p></section>
+
+<section class="note-sec split2">
+<div><h2 id="mistakes">Common mistakes</h2><ul><li><strong>Checking output difference only.</strong> After quantising, measure whether the task still succeeds.</li><li><strong>Measuring the model alone.</strong> The camera, preprocessing and communication all spend the budget too.</li><li><strong>Shipping without monitoring.</strong> Then the first sign of a problem is a complaint.</li></ul></div>
+<div><h2 id="terms">Terms</h2><dl class="terms"><dt>Quantisation</dt><dd>Representing numbers with fewer bits.</dd><dt>Calibration</dt><dd>Choosing the numeric ranges for low-bit formats from sample data.</dd><dt>Latency</dt><dd>The delay between sensing and acting.</dd><dt>Drift</dt><dd>Deployment inputs slowly departing from the training data.</dd></dl></div></section>
+
+        <section class="note-sec split2 more"><div><h2>In my work</h2><ul class="links"><li><a href="caseid.html">CaseID: the full pipeline on a Jetson</a></li><li><a href="retail-applications.html">Retail applications: models at the edge</a></li></ul></div><div><h2>Further reading</h2><ul class="links"><li><a href="https://arxiv.org/abs/2103.13630">Gholami et al., 2021. A Survey of Quantization Methods for Efficient Neural Network Inference.</a></li><li><a href="https://arxiv.org/abs/2410.24164">Black et al., 2024. &pi;<sub>0</sub>: A Vision-Language-Action Flow Model for General Robot Control.</a></li><li><a href="https://arxiv.org/abs/2506.07339">Black et al., 2025. Real-Time Execution of Action Chunking Flow Policies.</a></li></ul></div></section>
         <nav class="pager" aria-label="Guide pages"><a href="guide-training-at-scale.html"><span>Previous</span>Training at scale</a><a class="pnext" href="guide-understanding-and-safety.html"><span>Next</span>Understanding and safety</a></nav>
       </article>
     </div>

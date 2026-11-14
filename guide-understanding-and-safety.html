@@ -45,22 +45,27 @@
       </div>
     </header>
     <div class="wrap note">
-      <aside class="toc card"><h2>In this note</h2><ol><li><a href="#s48">Looking inside the model, and knowing when not to trust it</a></li><li><a href="#s49">Physical safety: layers outside the learned model</a></li></ol>
+      <aside class="toc card"><h2>In this note</h2><ol><li><a href="#inside">Looking inside the model</a></li><li><a href="#trust">Knowing when not to trust it</a></li><li><a href="#safety">Physical safety sits outside the model</a></li><li><a href="#mistakes">Common mistakes</a></li></ol>
         <h2>Key points</h2><ul class="keys"><li>Interpretability tools suggest hypotheses; an ablation or a controlled test confirms them.</li><li>Never rely on the policy to be safe; put hard limits underneath it and a human above it.</li></ul></aside>
       <article class="note-body">
-<section class="note-sec"><h2 id="s48">Looking inside the model, and knowing when not to trust it</h2>
-<p class="lede">Tools for asking what a model has learned and whether the current input is one it can handle.</p>
-<figure class="gfig card slide"><img src="img/guide/s48.jpg" width="1500" height="586" loading="lazy" alt="Looking inside the model, and knowing when not to trust it"></figure>
-<p>Of the explainability methods in the old deck, saliency and ablation survive in daily use; LIME, layer-wise relevance propagation and RETAIN are now rarely used for large models. Sparse autoencoders are the main new tool. For robots, uncertainty and out-of-distribution detection are practical safety tools: a policy facing an unfamiliar scene should slow down or stop.</p>
-<p class="key"><span>Key point</span>Interpretability tools suggest hypotheses; an ablation or a controlled test confirms them.</p></section>
+<section class="note-sec"><h2 id="inside">Looking inside the model</h2>
 
-<section class="note-sec"><h2 id="s49">Physical safety: layers outside the learned model</h2>
-<p class="lede">A learned policy will sometimes be wrong, so safety has to be enforced outside it.</p>
-<figure class="gfig card slide"><img src="img/guide/s49.jpg" width="1500" height="586" loading="lazy" alt="Physical safety: layers outside the learned model"></figure>
-<p>This is a slide to linger on with junior engineers who will work near hardware. Collaborative robots limit force and speed by design, but any arm or humanoid can injure.</p>
-<p class="key"><span>Key point</span>Never rely on the policy to be safe; put hard limits underneath it and a human above it.</p></section>
+<p>These are tools for asking what a model has learned. They suggest hypotheses. An ablation or a controlled test confirms them.</p><div class="tablewrap"><table class="gtable "><thead><tr><th>Tool</th><th>What it does</th><th>How far to trust it</th></tr></thead><tbody><tr><th>Probing</th><td>Trains a small classifier on internal features. If it can read out object position, the model encodes it.</td><td>A cheap first check of what a layer knows</td></tr><tr><th>Attention and saliency maps</th><td>Show which pixels or tokens influenced an output.</td><td>Good for spotting shortcuts; suggestive, not proof</td></tr><tr><th>Sparse autoencoders</th><td>Decompose activations into many simple features, each often with a readable meaning.</td><td>An active research area</td></tr><tr><th>Ablation</th><td>Removes or zeroes a component, or masks an input such as one camera, and measures the change.</td><td>The most direct causal evidence</td></tr></tbody></table></div></section>
 
-        
+<section class="note-sec"><h2 id="trust">Knowing when not to trust it</h2>
+
+<p>A policy facing an unfamiliar scene should slow down or stop, and to do that the system has to notice.</p><ul><li><strong>Uncertainty.</strong> Estimate how sure the model is, with an ensemble, by sampling several outputs, or with calibrated confidence scores. This lets the system ask for help.</li><li><strong>Out-of-distribution detection.</strong> Flag inputs unlike the training data, for example by comparing their embeddings with those seen in training, and trigger a safe stop or a human check.</li></ul></section>
+
+<section class="note-sec"><h2 id="safety">Physical safety sits outside the model</h2>
+
+<p>A learned policy will sometimes be wrong, so safety has to be enforced outside it.</p>
+<figure class="gfig card narrow"><img src="img/guide/g-safety.jpg" width="1396" height="814" loading="lazy" alt="Five stacked layers from outermost to innermost: human supervisor, runtime monitor, learned policy, low-level controller, hardware"><figcaption>Safety layers, outermost first. The policy is one layer, and it is assumed to be fallible.</figcaption></figure><ul><li><strong>Defence in depth.</strong> Use several independent layers, each able to stop the robot.</li><li><strong>Lower layers are simpler.</strong> Limits in firmware and hardware are far easier to verify than a neural network.</li><li><strong>Fail safe.</strong> On lost communication or stale commands, stop.</li><li><strong>Limit energy.</strong> Cap speed and force near people. Collaborative robots are built for this.</li><li><strong>Test the stop.</strong> Exercise the emergency stop regularly, and make sure new team members know where it is.</li></ul><p>Never rely on the policy to be safe. Put hard limits underneath it and a human above it, and run any policy under test at reduced speed first.</p></section>
+
+<section class="note-sec split2">
+<div><h2 id="mistakes">Common mistakes</h2><ul><li><strong>Treating a saliency map as an explanation.</strong> It shows where the model looked, not why it decided.</li><li><strong>Trusting raw confidence.</strong> Uncalibrated scores can be high on inputs the model has never seen.</li><li><strong>Putting safety in the policy.</strong> A constraint the network learned is a tendency, not a guarantee.</li></ul></div>
+<div><h2 id="terms">Terms</h2><dl class="terms"><dt>Ablation</dt><dd>Removing a component to measure its effect.</dd><dt>Calibration</dt><dd>Agreement between stated confidence and actual accuracy.</dd><dt>Out of distribution</dt><dd>Unlike the data the model was trained on.</dd><dt>Emergency stop</dt><dd>A hardware control that cuts power to motion.</dd></dl></div></section>
+
+        <section class="note-sec split2 more"><div><h2>Further reading</h2><ul class="links"><li><a href="https://transformer-circuits.pub/2023/monosemantic-features">Bricken et al., 2023. Towards Monosemanticity: Decomposing Language Models With Dictionary Learning.</a></li><li><a href="https://arxiv.org/abs/1706.04599">Guo et al., 2017. On Calibration of Modern Neural Networks.</a></li></ul></div></section>
         <nav class="pager" aria-label="Guide pages"><a href="guide-deployment.html"><span>Previous</span>Deployment on the robot</a><a class="pnext" href="guide-embodiments.html"><span>Next</span>Embodiments</a></nav>
       </article>
     </div>

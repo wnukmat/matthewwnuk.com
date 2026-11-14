@@ -41,32 +41,40 @@
         <p class="eyebrow">Guide &middot; Practice &middot; Topic 15 of 15</p>
         <h1>Embodiments</h1>
         <p class="dek">The bodies and sensors a policy actually controls.</p>
-        <p class="gmeta"><span>2 minute read</span></p>
+        <p class="gmeta"><span>3 minute read</span></p>
       </div>
     </header>
     <div class="wrap note">
-      <aside class="toc card"><h2>In this note</h2><ol><li><a href="#s50">Four robots you will meet</a></li><li><a href="#s51">The bodies: what robot are we actually controlling?</a></li><li><a href="#s52">Sensing: what the robot knows about the world and itself</a></li></ol>
+      <aside class="toc card"><h2>In this note</h2><ol><li><a href="#robots">Four robots you will meet</a></li><li><a href="#bodies">What the body decides</a></li><li><a href="#sensing">Sensing: what the robot knows</a></li><li><a href="#mistakes">Common mistakes</a></li></ol>
         <h2>Key points</h2><ul class="keys"><li>Different bodies, same recipe: cameras in, action chunks out.</li><li>The body decides the action space, the data you can collect and what can go wrong.</li><li>If a human teleoperator could not do the task with the robot&#x27;s sensors, the policy cannot either.</li></ul></aside>
       <article class="note-body">
-<section class="note-sec"><h2 id="s50">Four robots you will meet</h2>
-<p class="lede">The methods in this deck run on machines like these.</p>
-<figure class="gfig card slide"><img src="img/guide/s50.jpg" width="1500" height="586" loading="lazy" alt="Four robots you will meet"></figure>
-<p>The G1 is a compact humanoid that many labs now use. The Franka arm is the most common research manipulator and is the arm simulated in the LIBERO benchmark used for figures in this deck. Flexiv and NEURA build arms designed for force-sensitive and collaborative work. Photo credits are on the last slide.</p>
-<p class="key"><span>Key point</span>Different bodies, same recipe: cameras in, action chunks out.</p></section>
+<section class="note-sec"><h2 id="robots">Four robots you will meet</h2>
 
-<section class="note-sec"><h2 id="s51">The bodies: what robot are we actually controlling?</h2>
-<p class="lede">The same learning methods run on very different machines; each body sets different constraints.</p>
-<figure class="gfig card slide"><img src="img/guide/s51.jpg" width="1500" height="586" loading="lazy" alt="The bodies: what robot are we actually controlling?"></figure>
-<p>Degrees of freedom are typical ranges and vary by model. Examples to mention: seven-axis collaborative arms such as the Franka research arm; humanoids such as the Unitree G1 and H1. A practical point: most public manipulation data is from single arms with parallel grippers, so that is where policies are strongest today.</p>
-<p class="key"><span>Key point</span>The body decides the action space, the data you can collect and what can go wrong.</p></section>
+<p>The methods in this guide run on machines like these. The bodies differ, and the recipe is the same: cameras in, action chunks out.</p>
+<div class="figrow">
+<figure class="gfig card photo"><img src="img/guide/robot_g1.jpg" width="800" height="1000" loading="lazy" alt="A Unitree G1 humanoid robot standing in an exhibition hall"><figcaption><strong>Unitree G1.</strong> A compact humanoid: whole-body control, two arms and hands.</figcaption></figure>
+<figure class="gfig card photo"><img src="img/guide/robot_franka.jpg" width="800" height="1000" loading="lazy" alt="A white Franka robot arm at a workbench"><figcaption><strong>Franka research arm.</strong> Seven joints with torque sensing. The standard lab arm, and the arm simulated in LIBERO.</figcaption></figure>
+<figure class="gfig card photo"><img src="img/guide/robot_flexiv.jpg" width="800" height="1000" loading="lazy" alt="A Flexiv Rizon robot arm polishing a surface while a person stands beside it"><figcaption><strong>Flexiv Rizon.</strong> A seven-joint arm built around force control.</figcaption></figure>
+<figure class="gfig card photo"><img src="img/guide/robot_maira.jpg" width="800" height="1000" loading="lazy" alt="A NEURA MAiRA robot arm lit in purple against a dark background"><figcaption><strong>NEURA MAiRA.</strong> A collaborative arm with built-in sensing, for work beside people.</figcaption></figure>
+</div></section>
 
-<section class="note-sec"><h2 id="s52">Sensing: what the robot knows about the world and itself</h2>
-<p class="lede">A policy can only use what its sensors provide; choosing and placing sensors is part of the design.</p>
-<figure class="gfig card slide"><img src="img/guide/s52.jpg" width="1500" height="586" loading="lazy" alt="Sensing: what the robot knows about the world and itself"></figure>
-<p>The takeaway line is a useful test: sit a person at the teleoperation station with only the robot&#x27;s camera views. If they cannot do the task, the sensors are insufficient. Touch is under-used today mostly because tactile data is scarce and sensors vary, not because it is unimportant.</p>
-<p class="key"><span>Key point</span>If a human teleoperator could not do the task with the robot&#x27;s sensors, the policy cannot either.</p></section>
+<section class="note-sec"><h2 id="bodies">What the body decides</h2>
 
-        
+<p>The same learning methods run on very different machines. The body sets the action space, the data you can collect and what can go wrong. Degrees of freedom below are typical ranges.</p><div class="tablewrap"><table class="gtable "><thead><tr><th>Embodiment</th><th>Degrees of freedom</th><th>Strengths</th><th>Challenges for learning</th></tr></thead><tbody><tr><th>Arms and collaborative robots</th><td>6 or 7, plus gripper</td><td>Precise, mature, safe to work beside</td><td>A fixed base limits reach and the tasks available</td></tr><tr><th>Parallel grippers</th><td>1</td><td>Simple, robust, easy to learn</td><td>Cannot re-orient an object in the hand</td></tr><tr><th>Dexterous hands</th><td>12 to 20 or more</td><td>Human-like manipulation</td><td>Hard to teleoperate, fragile, a large action space</td></tr><tr><th>Mobile manipulators</th><td>An arm on a moving base</td><td>Large workspace</td><td>Base and arm must be coordinated</td></tr><tr><th>Quadrupeds</th><td>12</td><td>Stable on rough terrain</td><td>Little manipulation unless an arm is added</td></tr><tr><th>Humanoids</th><td>20 to 50 or more</td><td>Fit human spaces and tools; can learn from human video</td><td>Balance, whole-body control, cost and data collection</td></tr></tbody></table></div><p>Most public manipulation data comes from single arms with parallel grippers, so that is where policies are strongest today.</p></section>
+
+<section class="note-sec"><h2 id="sensing">Sensing: what the robot knows</h2>
+
+<p>A policy can only use what its sensors provide, so choosing and placing sensors is part of the design.</p>
+<div class="figrow two">
+<figure class="gfig card photo"><img src="img/guide/cam_scene.jpg" width="768" height="768" loading="lazy" alt="A scene camera view of a robot arm above a table with mugs and plates"><figcaption>Scene camera: the wider context.</figcaption></figure>
+<figure class="gfig card photo"><img src="img/guide/cam_wrist.jpg" width="768" height="768" loading="lazy" alt="A wrist camera view looking down at a mug from just above the gripper"><figcaption>Wrist camera: a close-up of the grasp.</figcaption></figure>
+</div><ul><li><strong>RGB cameras</strong> are the main input for learned policies. Scene cameras give context, and wrist cameras give a close-up of the grasp and a large gain in precision. Their placement must match the training data.</li><li><strong>Depth,</strong> from stereo, structured light or lidar, gives geometry directly but is noisy on shiny and transparent objects. Many policies skip it and learn depth from RGB.</li><li><strong>Proprioception,</strong> meaning joint positions, velocities and torques, is always available and precise. Policies can lean on it too much and ignore the cameras.</li><li><strong>Touch and force.</strong> Force-torque sensors measure contact at the wrist, and tactile sensors measure pressure and slip at the fingertips. They are essential for insertion, fragile objects and anything hidden by the hand.</li></ul><p>A useful test: sit a person at the teleoperation station with only the robot&rsquo;s camera views. If they cannot do the task, the policy cannot either.</p></section>
+
+<section class="note-sec split2">
+<div><h2 id="mistakes">Common mistakes</h2><ul><li><strong>Moving a camera after collecting data.</strong> The policy has learned the old viewpoint.</li><li><strong>Expecting a policy to transfer between bodies for free.</strong> A different arm, gripper or camera layout usually needs new data.</li><li><strong>Leaving out touch because data is scarce.</strong> It is under-used because tactile data is hard to collect, not because it is unimportant.</li></ul></div>
+<div><h2 id="terms">Terms</h2><dl class="terms"><dt>Degrees of freedom</dt><dd>The number of independent ways a robot can move.</dd><dt>End effector</dt><dd>The tool at the end of the arm, usually a gripper or hand.</dd><dt>Collaborative robot</dt><dd>An arm designed to work safely beside people.</dd><dt>Whole-body control</dt><dd>Coordinating legs, torso and arms together.</dd></dl></div></section>
+
+        <section class="note-sec split2 more"><div><h2>Further reading</h2><ul class="links"><li><a href="https://arxiv.org/abs/2306.03310">Liu et al., 2023. LIBERO: Benchmarking Knowledge Transfer for Lifelong Robot Learning.</a></li></ul></div></section>
         <nav class="pager" aria-label="Guide pages"><a href="guide-understanding-and-safety.html"><span>Previous</span>Understanding and safety</a><span></span></nav>
       </article>
     </div>

@@ -45,22 +45,24 @@
       </div>
     </header>
     <div class="wrap note">
-      <aside class="toc card"><h2>In this note</h2><ol><li><a href="#s43">A recipe for training neural networks</a></li><li><a href="#s44">The engineering around a training run</a></li></ol>
+      <aside class="toc card"><h2>In this note</h2><ol><li><a href="#recipe">A recipe for training neural networks</a></li><li><a href="#engineering">The engineering around a run</a></li><li><a href="#mistakes">Common mistakes</a></li></ol>
         <h2>Key points</h2><ul class="keys"><li>Build up from something simple that works; never start with the full system.</li><li>A result you cannot reproduce or compare is not a result.</li></ul></aside>
       <article class="note-body">
-<section class="note-sec"><h2 id="s43">A recipe for training neural networks</h2>
-<p class="lede">Andrej Karpathy&#x27;s 2019 recipe is still the best checklist for starting any training project.</p>
-<figure class="gfig card slide"><img src="img/guide/s43.jpg" width="1500" height="586" loading="lazy" alt="A recipe for training neural networks"></figure>
-<p>Source: Andrej Karpathy, A Recipe for Training Neural Networks, 2019. The steps: become one with the data; set up the end-to-end skeleton with a dumb baseline; overfit; regularise; tune; squeeze out the last gains. The ordering is the lesson. Each stage gives you something known to work before you add complexity.</p>
-<p class="key"><span>Key point</span>Build up from something simple that works; never start with the full system.</p></section>
+<section class="note-sec"><h2 id="recipe">A recipe for training neural networks</h2>
 
-<section class="note-sec"><h2 id="s44">The engineering around a training run</h2>
-<p class="lede">Large runs are software projects; these practices keep them fast, comparable and recoverable.</p>
-<figure class="gfig card slide"><img src="img/guide/s44.jpg" width="1500" height="586" loading="lazy" alt="The engineering around a training run"></figure>
-<p>These are the unglamorous habits that separate reliable teams. The config point deserves emphasis: the most common way an experiment silently changes two things at once is a default that changed. The convergence point links back to the learning rate slide: a metric that flattens because the schedule decayed to zero has not necessarily converged.</p>
-<p class="key"><span>Key point</span>A result you cannot reproduce or compare is not a result.</p></section>
+<p>Andrej Karpathy&rsquo;s 2019 recipe is still the best checklist for starting a training project. Its lesson is the ordering: build up from something simple that works, and never start with the full system.</p>
+<figure class="gfig card "><img src="img/guide/g-recipe.jpg" width="1500" height="148" loading="lazy" alt="Five boxes in a row: know the data, skeleton and baseline, overfit, regularise, tune"><figcaption>Each stage gives you something known to work before you add complexity.</figcaption></figure><ul><li><strong>Know the data.</strong> Look at hundreds of samples. Find the duplicates, the bad labels and the imbalance before the model does.</li><li><strong>Build the skeleton and a baseline.</strong> Set up the full training and evaluation loop with a tiny model. Fix the random seed, and check that the loss at the very start is what you would expect from chance.</li><li><strong>Overfit.</strong> Make the model big enough to memorise the training set. If it cannot, there is a bug.</li><li><strong>Regularise.</strong> Add data first. Then add augmentation, dropout and weight decay, trading some training loss for validation loss.</li><li><strong>Tune.</strong> Search the learning rate and a few key settings, one at a time, and train to convergence.</li></ul></section>
 
-        
+<section class="note-sec"><h2 id="engineering">The engineering around a run</h2>
+
+<p>Large training runs are software projects. Six practices keep them fast, comparable and recoverable.</p><div class="tablewrap"><table class="gtable "><thead><tr><th>Practice</th><th>What it is</th><th>Watch for</th></tr></thead><tbody><tr><th>Mixed precision</th><td>Compute in 16-bit numbers and keep the sensitive parts in 32-bit. Roughly halves memory.</td><td>Overflow and NaNs</td></tr><tr><th>Distributed training</th><td>Split each batch across several GPUs for a shorter wall-clock time.</td><td>Data loading becomes the bottleneck</td></tr><tr><th>Experiment tracking</th><td>Log every run: configuration, code version, metrics and sample outputs.</td><td>Run names you cannot decode in a year</td></tr><tr><th>Pinned configurations</th><td>Set every hyperparameter explicitly and compare the full configuration with the reference run before launch.</td><td>Defaults that changed between code versions</td></tr><tr><th>Checkpointing</th><td>Save the model, optimizer and step regularly, and keep the best checkpoint by validation score.</td><td>A resumed run that differs from an uninterrupted one</td></tr><tr><th>Convergence</th><td>A run is done when the validation curve has flattened.</td><td>A curve that flattened only because the learning rate reached zero</td></tr></tbody></table></div>
+<p>The configuration row deserves emphasis. The most common way an experiment silently changes two things at once is a default that moved. A result you cannot reproduce or compare is not a result.</p></section>
+
+<section class="note-sec split2">
+<div><h2 id="mistakes">Common mistakes</h2><ul><li><strong>Starting with the full system.</strong> When it fails, there are too many places to look.</li><li><strong>Changing several things at once.</strong> The result cannot then be attributed to any of them.</li><li><strong>Declaring victory at the step limit.</strong> Check the curve, not the counter.</li></ul></div>
+<div><h2 id="terms">Terms</h2><dl class="terms"><dt>Seed</dt><dd>The number that fixes the random choices in a run, so it can be repeated.</dd><dt>Checkpoint</dt><dd>A saved copy of the model partway through training.</dd><dt>Hyperparameter</dt><dd>A setting chosen by you, not learned by the model.</dd><dt>Convergence</dt><dd>The point where more training no longer improves the validation metric.</dd></dl></div></section>
+
+        <section class="note-sec split2 more"><div><h2>Further reading</h2><ul class="links"><li><a href="https://karpathy.github.io/2019/04/25/recipe/">Karpathy, 2019. A Recipe for Training Neural Networks.</a></li></ul></div></section>
         <nav class="pager" aria-label="Guide pages"><a href="guide-evaluation.html"><span>Previous</span>Evaluation</a><a class="pnext" href="guide-deployment.html"><span>Next</span>Deployment on the robot</a></nav>
       </article>
     </div>

@@ -41,32 +41,33 @@
         <p class="eyebrow">Guide &middot; Models &middot; Topic 6 of 15</p>
         <h1>Foundation models and adaptation</h1>
         <p class="dek">Pretrain once, adapt many times: the ladder from prompting to fine-tuning.</p>
-        <p class="gmeta"><span>2 minute read</span></p>
+        <p class="gmeta"><span>3 minute read</span></p>
       </div>
     </header>
     <div class="wrap note">
-      <aside class="toc card"><h2>In this note</h2><ol><li><a href="#s22">Pretrain once, adapt many times</a></li><li><a href="#s23">The adaptation ladder: try the cheap rungs first</a></li><li><a href="#s24">From answering to acting: reasoning, tools and agents</a></li></ol>
+      <aside class="toc card"><h2>In this note</h2><ol><li><a href="#pretrain">Pretrain once, adapt many times</a></li><li><a href="#ladder">The adaptation ladder</a></li><li><a href="#acting">From answering to acting</a></li><li><a href="#mistakes">Common mistakes</a></li></ol>
         <h2>Key points</h2><ul class="keys"><li>Almost no one trains from scratch any more; the skill is choosing a starting model and adapting it well.</li><li>Climb only as far as the task needs; each rung costs more data, compute and maintenance.</li><li>Reasoning and tool use are the bridge from chat models to systems that do work, including robots.</li></ul></aside>
       <article class="note-body">
-<section class="note-sec"><h2 id="s22">Pretrain once, adapt many times</h2>
-<p class="lede">A foundation model is trained on broad data at great cost, then reused for many tasks at low cost.</p>
-<figure class="gfig card slide"><img src="img/guide/s22.jpg" width="1500" height="586" loading="lazy" alt="Pretrain once, adapt many times"></figure>
-<p>The economics changed the field. Pretraining takes huge data and compute and is done by a few groups. Adaptation takes a small dataset and a modest budget and is done by everyone. In robotics the pretrained model is often a vision-language model that already understands images and instructions; robot data teaches it to act.</p>
-<p class="key"><span>Key point</span>Almost no one trains from scratch any more; the skill is choosing a starting model and adapting it well.</p></section>
+<section class="note-sec"><h2 id="pretrain">Pretrain once, adapt many times</h2>
 
-<section class="note-sec"><h2 id="s23">The adaptation ladder: try the cheap rungs first</h2>
-<p class="lede">Ways to get a pretrained model to do your task, ordered from least to most effort.</p>
-<figure class="gfig card slide"><img src="img/guide/s23.jpg" width="1500" height="586" loading="lazy" alt="The adaptation ladder: try the cheap rungs first"></figure>
-<p>LoRA stands for low-rank adaptation: instead of updating a large weight matrix, learn two small matrices whose product is added to it. It trains a fraction of a percent of the parameters. For robot policies, full fine-tuning is still common because actions are a new kind of output, but LoRA on the language backbone plus a newly trained action head is a frequent compromise. Data counts are rough orders of magnitude.</p>
-<p class="key"><span>Key point</span>Climb only as far as the task needs; each rung costs more data, compute and maintenance.</p></section>
+<figure class="gfig card "><img src="img/guide/g-pretrain.jpg" width="1500" height="170" loading="lazy" alt="Broad data feeds expensive pretraining, which produces a foundation model that is cheaply adapted to a specific task"><figcaption>The economics of the field in one line.</figcaption></figure>
+<p>A foundation model is trained on broad data at great cost and then reused for many tasks at low cost. Pretraining takes enormous data and compute and is done by a few groups. Adaptation takes a small dataset and a modest budget and is done by everyone. Almost no one trains from scratch any more. The skill is choosing a starting model and adapting it well.</p>
+<p>Two kinds matter most here. <strong>Language models</strong> are decoder transformers trained to predict the next token; they carry broad knowledge and follow instructions. <strong>Vision-language models</strong> add a vision encoder in front, so they can answer questions about images and video. A vision-language model is the usual starting point for a robot policy.</p>
+<p>Transfer works because general features carry over and a little task data goes a long way. The risk travels with it: the model&rsquo;s gaps and biases transfer too.</p></section>
 
-<section class="note-sec"><h2 id="s24">From answering to acting: reasoning, tools and agents</h2>
-<p class="lede">Language models are increasingly used to plan and to take steps, not only to reply.</p>
-<figure class="gfig card slide"><img src="img/guide/s24.jpg" width="1500" height="586" loading="lazy" alt="From answering to acting: reasoning, tools and agents"></figure>
-<p>Chain of thought returns in section 8 as embodied reasoning, where a policy first states what it sees and intends, then outputs actions. The agent loop of observe, decide, act is the same loop as a robot controller, just slower and in text.</p>
-<p class="key"><span>Key point</span>Reasoning and tool use are the bridge from chat models to systems that do work, including robots.</p></section>
+<section class="note-sec"><h2 id="ladder">The adaptation ladder</h2>
 
-        
+<p>There are several ways to get a pretrained model to do your task. Try the cheap rungs first, and climb only as far as the task needs. Each rung costs more data, compute and upkeep.</p><div class="tablewrap"><table class="gtable "><thead><tr><th>Method</th><th>What changes</th><th>Data needed</th><th>Reach for it when</th></tr></thead><tbody><tr><th>Prompting</th><td>Only the input text</td><td>None</td><td>The model already knows how and needs instructions</td></tr><tr><th>In-context examples</th><td>The input, with a few worked examples</td><td>A handful</td><td>The output format or style is specific</td></tr><tr><th>Retrieval augmentation</th><td>The input, with documents fetched at run time</td><td>A document store</td><td>Answers depend on facts the model lacks</td></tr><tr><th>LoRA and adapters</th><td>Small added weight matrices; the base is frozen</td><td>Hundreds to thousands</td><td>A new skill or domain on a limited budget</td></tr><tr><th>Full fine-tuning</th><td>All the weights</td><td>Thousands and up</td><td>A large shift, such as a new robot or new kind of output</td></tr><tr><th>Distillation</th><td>A smaller student copies the adapted model</td><td>The teacher&rsquo;s outputs</td><td>The result must run on a small device</td></tr></tbody></table></div>
+<p>LoRA stands for low-rank adaptation. Instead of updating a large weight matrix, it learns two small matrices whose product is added to it, training a fraction of a percent of the parameters. For robot policies, full fine-tuning is still common because actions are a new kind of output, but a frequent compromise is LoRA on the language backbone plus a newly trained action head. The data counts above are rough orders of magnitude.</p></section>
+
+<section class="note-sec"><h2 id="acting">From answering to acting</h2>
+<ul><li><strong>Reasoning.</strong> Have the model write intermediate steps before its answer, often called chain of thought. This trades extra compute at run time for accuracy.</li><li><strong>Tool use.</strong> The model emits a structured call, such as a search or a piece of code to run, and the result is fed back as new input. It can then act on facts it was never trained on.</li><li><strong>Agents.</strong> A loop of observe, decide, act and observe again, useful for multi-step work.</li></ul><p>These are the bridge from chat models to systems that do work. A robot is an agent whose tools are motors, and the reasoning idea returns in robot policies as stating the plan before acting.</p></section>
+
+<section class="note-sec split2">
+<div><h2 id="mistakes">Common mistakes</h2><ul><li><strong>Fine-tuning first.</strong> Many tasks are solved by a better prompt or by retrieval, at a fraction of the cost.</li><li><strong>Forgetting what was lost.</strong> Fine-tuning on a narrow dataset can erase general abilities the base model had.</li><li><strong>Skipping the baseline.</strong> Measure the unadapted model first, or you cannot say what adaptation bought.</li></ul></div>
+<div><h2 id="terms">Terms</h2><dl class="terms"><dt>Foundation model</dt><dd>A large model pretrained on broad data and reused for many tasks.</dd><dt>Fine-tuning</dt><dd>Continuing training on task data.</dd><dt>LoRA</dt><dd>Adapting a model by training small added matrices.</dd><dt>Context window</dt><dd>The amount of input the model can read at once.</dd></dl></div></section>
+
+        <section class="note-sec split2 more"><div><h2>Further reading</h2><ul class="links"><li><a href="https://arxiv.org/abs/2106.09685">Hu et al., 2021. LoRA: Low-Rank Adaptation of Large Language Models.</a></li><li><a href="https://arxiv.org/abs/2005.11401">Lewis et al., 2020. Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks.</a></li><li><a href="https://arxiv.org/abs/2201.11903">Wei et al., 2022. Chain-of-Thought Prompting Elicits Reasoning in Large Language Models.</a></li></ul></div></section>
         <nav class="pager" aria-label="Guide pages"><a href="guide-generative-modeling.html"><span>Previous</span>Generative modeling</a><a class="pnext" href="guide-robot-learning-basics.html"><span>Next</span>Robot learning basics</a></nav>
       </article>
     </div>

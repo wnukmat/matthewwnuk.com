@@ -41,32 +41,42 @@
         <p class="eyebrow">Guide &middot; Robots &middot; Topic 10 of 15</p>
         <h1>Data for robots</h1>
         <p class="dek">Where robot training data comes from, and why quality matters more than volume.</p>
-        <p class="gmeta"><span>2 minute read</span></p>
+        <p class="gmeta"><span>3 minute read</span></p>
       </div>
     </header>
     <div class="wrap note">
-      <aside class="toc card"><h2>In this note</h2><ol><li><a href="#s37">The data pyramid: plentiful at the bottom, relevant at the top</a></li><li><a href="#s38">Collecting demonstrations and the datasets you will meet</a></li><li><a href="#s39">Simulation, the reality gap and data quality</a></li></ol>
+      <aside class="toc card"><h2>In this note</h2><ol><li><a href="#pyramid">The data pyramid</a></li><li><a href="#collect">Collecting demonstrations</a></li><li><a href="#sim">Simulation and the reality gap</a></li><li><a href="#quality">Quality before quantity</a></li><li><a href="#mistakes">Common mistakes</a></li></ol>
         <h2>Key points</h2><ul class="keys"><li>Use the cheap layers to learn about the world, and the expensive layer to learn how to act.</li><li>Know your dataset&#x27;s cameras, action space and control rate before you train on it.</li><li>More data only helps if it is good data: consistent, varied and correctly labelled.</li></ul></aside>
       <article class="note-body">
-<section class="note-sec"><h2 id="s37">The data pyramid: plentiful at the bottom, relevant at the top</h2>
-<p class="lede">Robotics has no internet-scale dataset of robot actions, so models are built from layers of different data.</p>
-<figure class="gfig card slide"><img src="img/guide/s37.jpg" width="1500" height="586" loading="lazy" alt="The data pyramid: plentiful at the bottom, relevant at the top"></figure>
-<p>This framing is common in the field. Language models had the web; robots do not have an equivalent record of actions. Every current system is an answer to the question of how to combine these layers. Quantities are orders of magnitude only.</p>
-<p class="key"><span>Key point</span>Use the cheap layers to learn about the world, and the expensive layer to learn how to act.</p></section>
+<section class="note-sec"><h2 id="pyramid">The data pyramid</h2>
 
-<section class="note-sec"><h2 id="s38">Collecting demonstrations and the datasets you will meet</h2>
-<p class="lede">How robot data is gathered, and the public collections and formats that have become standard.</p>
-<figure class="gfig card slide"><img src="img/guide/s38.jpg" width="1500" height="586" loading="lazy" alt="Collecting demonstrations and the datasets you will meet"></figure>
-<p>Leader-follower setups such as ALOHA made bimanual data collection cheap and popular. Handheld devices like UMI let people collect manipulation data in the wild. On formats: the practical lesson is that half of the effort on a robot learning project is data plumbing, and most bugs live there.</p>
-<p class="key"><span>Key point</span>Know your dataset&#x27;s cameras, action space and control rate before you train on it.</p></section>
+<p>Language models had the web. Robotics has no equivalent record of robot actions, so models are built from layers of different data.</p>
+<figure class="gfig card narrow"><img src="img/guide/g-pyramid.jpg" width="1436" height="814" loading="lazy" alt="A pyramid of four layers: web text, images and video at the wide base, then human and egocentric video, then simulation and synthetic data, with robot teleoperation at the narrow top"><figcaption>Plentiful at the bottom, relevant at the top. Quantities are orders of magnitude only.</figcaption></figure>
+<p><strong>Web data</strong> teaches language, objects and common sense, with no actions. <strong>Human video</strong> shows how tasks are done by hands, but the actions have to be inferred. <strong>Simulation and synthetic data</strong> have perfect labels and unlimited scale, but they differ from reality. <strong>Teleoperation</strong> is exactly the right data, the robot&rsquo;s own sensors and actions, and it is slow and costly to collect.</p>
+<p>Every current system is an answer to the question of how to combine these layers: use the cheap ones to learn about the world, and the expensive one to learn how to act.</p></section>
 
-<section class="note-sec"><h2 id="s39">Simulation, the reality gap and data quality</h2>
-<p class="lede">Simulated data is cheap and perfectly labelled, but a policy trained only in simulation often fails on the real robot.</p>
-<figure class="gfig card slide"><img src="img/guide/s39.jpg" width="1500" height="586" loading="lazy" alt="Simulation, the reality gap and data quality"></figure>
-<p>Sim-to-real is the problem of transferring from simulation to hardware. Domain randomisation varies textures, lighting, masses and friction during training so the real world looks like just another variation. It works well for locomotion and less well for contact-rich manipulation. Data quality: slow, hesitant or failed demonstrations teach the policy to be slow, hesitant and to fail.</p>
-<p class="key"><span>Key point</span>More data only helps if it is good data: consistent, varied and correctly labelled.</p></section>
+<section class="note-sec"><h2 id="collect">Collecting demonstrations</h2>
+<ul><li><strong>Leader-follower arms.</strong> The operator moves a small copy of the arm and the robot mirrors it. This made two-arm data collection cheap.</li><li><strong>VR headsets and controllers.</strong> These track the operator&rsquo;s hands.</li><li><strong>Handheld grippers.</strong> People collect manipulation data with no robot present at all.</li><li><strong>Exoskeletons and gloves.</strong> Used for humanoids and dexterous hands.</li></ul>
+<p>You will meet a handful of public collections again and again. <strong>Open X-Embodiment</strong> pools data from many labs and robots. <strong>DROID</strong> uses one arm setup across many buildings and scenes. <strong>LIBERO</strong> and similar suites are simulated benchmarks. Data is usually stored in the LeRobot format or in RLDS; each records observations, actions, timestamps and the task description. Converting between them is a routine chore, and a large share of the bugs on a robot learning project live in that plumbing.</p></section>
 
-        
+<section class="note-sec"><h2 id="sim">Simulation and the reality gap</h2>
+
+<p>Simulated data is cheap and perfectly labelled, yet a policy trained only in simulation often fails on the real robot. Rendered images look different from camera images, simulated contact and friction are approximations, and real sensors have delay and noise.</p>
+<figure class="gfig card narrow"><img src="img/guide/sim_gap.jpg" width="1433" height="950" loading="lazy" alt="Two tangled trajectories on a plane, one blue and one red, that diverge widely, with two target stars"><figcaption>A measured toy example: a controller planned in a simulator with the wrong friction. Blue is what the simulator predicted and red is what the real system did.</figcaption></figure>
+<p><strong>Domain randomisation</strong> is the standard response. Vary lighting, textures, masses and friction during training so that reality looks like one more variation.</p>
+<figure class="gfig card "><img src="img/guide/dr_grid.jpg" width="1500" height="437" loading="lazy" alt="Eight renderings of the same robot scene under different colours and lighting"><figcaption>The same scene under randomised appearance.</figcaption></figure>
+<figure class="gfig card "><img src="img/guide/dr_bars.jpg" width="1500" height="325" loading="lazy" alt="Three bars of mean miss distance: plain simulator 0.82, narrow randomisation 0.79, wide randomisation 0.39"><figcaption>The same toy experiment: mean miss on the real system, lower is better. Randomising helps only when the real value falls inside the randomised range.</figcaption></figure>
+<p>It works well for locomotion and less well for manipulation that depends on contact.</p></section>
+
+<section class="note-sec"><h2 id="quality">Quality before quantity</h2>
+
+<p>More data only helps if it is good data. Slow, hesitant or failed demonstrations teach the policy to be slow, hesitant and to fail. Before training, check four things: that demonstrations are smooth and successful, that the task description is correct for each episode, that objects, positions and scenes vary, and that cameras and timestamps are aligned.</p></section>
+
+<section class="note-sec split2">
+<div><h2 id="mistakes">Common mistakes</h2><ul><li><strong>Counting hours.</strong> A hundred varied, clean hours can beat a thousand repetitive ones.</li><li><strong>Trusting labels.</strong> Task descriptions attached to the wrong episodes are common in pooled datasets.</li><li><strong>Randomising blindly.</strong> If the real value lies outside the randomised range, randomisation does not help.</li></ul></div>
+<div><h2 id="terms">Terms</h2><dl class="terms"><dt>Teleoperation</dt><dd>A person controlling the robot to record demonstrations.</dd><dt>Embodiment</dt><dd>A particular robot body.</dd><dt>Sim-to-real</dt><dd>Moving a policy from simulation to hardware.</dd><dt>Episode</dt><dd>One recorded attempt at a task.</dd></dl></div></section>
+
+        <section class="note-sec split2 more"><div><h2>In my work</h2><ul class="links"><li><a href="world-action-models.html">World-action models: learning from many robots</a></li></ul></div><div><h2>Further reading</h2><ul class="links"><li><a href="https://arxiv.org/abs/2310.08864">Open X-Embodiment Collaboration, 2023. Robotic Learning Datasets and RT-X Models.</a></li><li><a href="https://arxiv.org/abs/2403.12945">Khazatsky et al., 2024. DROID: A Large-Scale In-The-Wild Robot Manipulation Dataset.</a></li><li><a href="https://arxiv.org/abs/2402.10329">Chi et al., 2024. Universal Manipulation Interface.</a></li><li><a href="https://arxiv.org/abs/1703.06907">Tobin et al., 2017. Domain Randomization for Transferring Deep Neural Networks from Simulation to the Real World.</a></li></ul></div></section>
         <nav class="pager" aria-label="Guide pages"><a href="guide-world-models.html"><span>Previous</span>World models</a><a class="pnext" href="guide-evaluation.html"><span>Next</span>Evaluation</a></nav>
       </article>
     </div>

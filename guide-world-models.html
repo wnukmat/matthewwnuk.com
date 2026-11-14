@@ -41,32 +41,36 @@
         <p class="eyebrow">Guide &middot; Robots &middot; Topic 9 of 15</p>
         <h1>World models</h1>
         <p class="dek">Models that predict what happens next, and models that predict and act together.</p>
-        <p class="gmeta"><span>2 minute read</span></p>
+        <p class="gmeta"><span>3 minute read</span></p>
       </div>
     </header>
     <div class="wrap note">
-      <aside class="toc card"><h2>In this note</h2><ol><li><a href="#s34">World models: learning to predict what happens next</a></li><li><a href="#s35">World-action models: predict the future and act, in one model</a></li><li><a href="#s36">Three uses for a world model, and one caution</a></li></ol>
+      <aside class="toc card"><h2>In this note</h2><ol><li><a href="#what">Learning to predict what happens next</a></li><li><a href="#wam">World-action models: predict and act in one model</a></li><li><a href="#uses">Three uses, and one caution</a></li><li><a href="#mistakes">Common mistakes</a></li></ol>
         <h2>Key points</h2><ul class="keys"><li>A policy answers &quot;what should I do?&quot;. A world model answers &quot;what will happen if I do this?&quot;.</li><li>The bet: a model that can predict what its actions will cause has learned something a pure policy has not.</li><li>A world model is only as useful as it is faithful; always check it against real outcomes.</li></ul></aside>
       <article class="note-body">
-<section class="note-sec"><h2 id="s34">World models: learning to predict what happens next</h2>
-<p class="lede">A world model takes the current situation and a proposed action, and predicts the outcome.</p>
-<figure class="gfig card slide"><img src="img/guide/s34.jpg" width="1500" height="586" loading="lazy" alt="World models: learning to predict what happens next"></figure>
-<p>The idea is old in control: have a model of the dynamics and use it to plan. What is new is learning the model from video at scale, using the video generation technology from section 5. An action-conditioned video model takes the current frames and a sequence of robot actions and generates the frames that would follow.</p>
-<p class="key"><span>Key point</span>A policy answers &quot;what should I do?&quot;. A world model answers &quot;what will happen if I do this?&quot;.</p></section>
+<section class="note-sec"><h2 id="what">Learning to predict what happens next</h2>
 
-<section class="note-sec"><h2 id="s35">World-action models: predict the future and act, in one model</h2>
-<p class="lede">Instead of a separate policy and world model, train one network to produce both the future and the actions that cause it.</p>
-<figure class="gfig card slide"><img src="img/guide/s35.jpg" width="1500" height="586" loading="lazy" alt="World-action models: predict the future and act, in one model"></figure>
-<p>This is an active research direction and results are still being established, so present it as a bet, not a settled answer. The appeal is that video prediction gives supervision on every pixel or latent of every frame, while action imitation gives only a few numbers per step. The latent versus pixel debate mirrors the JEPA discussion in section 4.</p>
-<p class="key"><span>Key point</span>The bet: a model that can predict what its actions will cause has learned something a pure policy has not.</p></section>
+<p>A policy answers &ldquo;what should I do?&rdquo;. A world model answers &ldquo;what will happen if I do this?&rdquo;. It takes the current situation and a proposed action and predicts the outcome.</p>
+<figure class="gfig card "><img src="img/guide/g-wm.jpg" width="1500" height="268" loading="lazy" alt="Two current camera frames plus proposed actions enter a world model, which outputs three future frames"><figcaption>The frames on the left are real observations. The frames on the right stand in for a prediction and are later frames of the same episode.</figcaption></figure>
+<p>The idea is old in control: build a model of the dynamics and use it to plan. What is new is learning that model from video at scale, using the generative methods in the <a href="guide-generative-modeling.html">generative modeling</a> note. An action-conditioned video model takes recent frames and a sequence of robot actions and generates the frames that would follow.</p>
+<p>Robots want this for two reasons. They can try actions in imagination before the real world, and video is plentiful, so it teaches physics without anyone labelling actions. The bar is high, though. The model must get contact, occlusion and object permanence right, and it must show the consequences of the action, not just plausible video.</p></section>
 
-<section class="note-sec"><h2 id="s36">Three uses for a world model, and one caution</h2>
-<p class="lede">What teams actually do with learned simulators today.</p>
-<figure class="gfig card slide"><img src="img/guide/s36.jpg" width="1500" height="586" loading="lazy" alt="Three uses for a world model, and one caution"></figure>
-<p>A learned simulator that is optimistic will rank bad policies highly. The validation that matters is correlation between model-based evaluation and real-robot evaluation on the same set of policies.</p>
-<p class="key"><span>Key point</span>A world model is only as useful as it is faithful; always check it against real outcomes.</p></section>
+<section class="note-sec"><h2 id="wam">World-action models: predict and act in one model</h2>
 
-        <section class="note-sec split2 more"><div><h2>In my work</h2><ul class="links"><li><a href="world-action-models.html">World-action models for robot control</a></li></ul></div></section>
+<p>A newer approach trains one network to produce both the future and the actions that cause it, where older designs kept the policy and the world model separate.</p>
+<figure class="gfig card "><img src="img/guide/wam_wiring.jpg" width="1500" height="459" loading="lazy" alt="Frames, an instruction and joint state are encoded and enter a causal diffusion transformer, whose output is decoded into an imagined future and into an action chunk"><figcaption>Wiring of one published world-action model, DreamZero. Figure from my video on it.</figcaption></figure>
+<p>The bet is that a model which can predict what its actions will cause has learned something a pure policy has not. Predicting the future gives a training signal on every pixel, or every latent value, of every frame, while imitating actions gives only a few numbers per step. At run time the future prediction can be skipped to save compute.</p>
+<p>The main design choice is what to predict. Pixels are easy to inspect but spend capacity on appearance. Latents are cheaper and focus on what matters but are harder to check. This is the same debate as in <a href="guide-representation-learning.html">representation learning</a>. It is an active research direction and the results are still coming in, so treat it as a bet and not a settled answer.</p></section>
+
+<section class="note-sec"><h2 id="uses">Three uses, and one caution</h2>
+<ul><li><strong>Evaluate policies.</strong> Roll a policy out inside the model and not on a robot. It is cheap, fast and safe, and useful for ranking checkpoints before real tests.</li><li><strong>Generate data.</strong> Produce new scenes, lighting and viewpoints to stretch scarce demonstrations. The generated video needs actions that match it.</li><li><strong>Plan.</strong> Imagine several action sequences, score the outcomes and execute the best. This is slow today and used mostly for high-level decisions.</li></ul>
+<p>The caution is that a learned model can produce physics that looks right and is wrong, and its errors grow with the length of the rollout. An optimistic simulator will rank bad policies highly. The check that matters is whether success inside the model predicts success on the robot, for the same set of policies.</p></section>
+
+<section class="note-sec split2">
+<div><h2 id="mistakes">Common mistakes</h2><ul><li><strong>Judging by how the video looks.</strong> Plausible is not the same as correct. Check outcomes against reality.</li><li><strong>Long rollouts.</strong> Small errors compound, as they do for policies.</li><li><strong>Ignoring the action.</strong> A model that produces the same future whatever the action is a video model, not a world model.</li></ul></div>
+<div><h2 id="terms">Terms</h2><dl class="terms"><dt>World model</dt><dd>A model that predicts future observations given actions.</dd><dt>Rollout</dt><dd>A sequence of predictions, each built on the last.</dd><dt>Action-conditioned</dt><dd>Predictions that depend on the action given.</dd><dt>World-action model</dt><dd>One model that outputs both future observations and actions.</dd></dl></div></section>
+
+        <section class="note-sec split2 more"><div><h2>In my work</h2><ul class="links"><li><a href="world-action-models.html">World-action models for robot control</a></li></ul></div><div><h2>Further reading</h2><ul class="links"><li><a href="https://arxiv.org/abs/1803.10122">Ha and Schmidhuber, 2018. World Models.</a></li><li><a href="https://arxiv.org/abs/2506.09985">Assran et al., 2025. V-JEPA 2: Self-Supervised Video Models Enable Understanding, Prediction and Planning.</a></li><li><a href="https://arxiv.org/abs/2602.15922">Ye et al., 2026. World Action Models are Zero-shot Policies (DreamZero).</a></li></ul></div></section>
         <nav class="pager" aria-label="Guide pages"><a href="guide-robot-policies.html"><span>Previous</span>Robot policies today</a><a class="pnext" href="guide-robot-data.html"><span>Next</span>Data for robots</a></nav>
       </article>
     </div>

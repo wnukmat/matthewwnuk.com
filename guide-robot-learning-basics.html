@@ -41,38 +41,45 @@
         <p class="eyebrow">Guide &middot; Robots &middot; Topic 7 of 15</p>
         <h1>Robot learning basics</h1>
         <p class="dek">The control loop, action spaces, imitation learning and where reinforcement learning fits.</p>
-        <p class="gmeta"><span>2 minute read</span></p>
+        <p class="gmeta"><span>3 minute read</span></p>
       </div>
     </header>
     <div class="wrap note">
-      <aside class="toc card"><h2>In this note</h2><ol><li><a href="#s25">The control loop: what a robot policy actually does</a></li><li><a href="#s26">Action spaces: what exactly does the policy output?</a></li><li><a href="#s27">Imitation learning, compounding error and action chunking</a></li><li><a href="#s28">Reinforcement learning and the classical layer underneath</a></li></ol>
+      <aside class="toc card"><h2>In this note</h2><ol><li><a href="#loop">The control loop</a></li><li><a href="#actions">Action spaces: what exactly does the policy output?</a></li><li><a href="#imitation">Imitation learning and its weak point</a></li><li><a href="#chunking">Action chunking</a></li><li><a href="#rl">Reinforcement learning and the layer underneath</a></li><li><a href="#mistakes">Common mistakes</a></li></ol>
         <h2>Key points</h2><ul class="keys"><li>Unlike a classifier, a policy&#x27;s outputs change its own future inputs.</li><li>Before training on any dataset, find out which action space it uses; mixing them silently breaks a policy.</li><li>Predicting a chunk of future actions, not one, is the simple trick that made imitation learning work.</li><li>Imitation leads in manipulation, RL in locomotion, and classical control runs under both.</li></ul></aside>
       <article class="note-body">
-<section class="note-sec"><h2 id="s25">The control loop: what a robot policy actually does</h2>
-<p class="lede">A policy is a function from what the robot senses to what the robot should do next, called many times a second.</p>
-<figure class="gfig card slide"><img src="img/guide/s25.jpg" width="1500" height="586" loading="lazy" alt="The control loop: what a robot policy actually does"></figure>
-<p>This is the most important conceptual shift for people coming from standard machine learning. In supervised learning, test inputs are independent of the model. In control, a small mistake moves the robot to a slightly different place, so the next observation is one the model may never have seen. Frequencies are typical values: learned policies run slowly and hand off to a fast classical controller.</p>
-<p class="key"><span>Key point</span>Unlike a classifier, a policy&#x27;s outputs change its own future inputs.</p></section>
+<section class="note-sec"><h2 id="loop">The control loop</h2>
 
-<section class="note-sec"><h2 id="s26">Action spaces: what exactly does the policy output?</h2>
-<p class="lede">The same motion can be commanded in several ways, and the choice affects learning and transfer.</p>
-<figure class="gfig card slide"><img src="img/guide/s26.jpg" width="1500" height="586" loading="lazy" alt="Action spaces: what exactly does the policy output?"></figure>
-<p>A common real bug: a dataset records absolute joint positions, the policy is configured for delta end-effector actions, and nothing crashes. The robot just moves strangely. Rotation representation also matters: Euler angles, quaternions, axis-angle and six-dimensional representations are all in use. Normalising actions to a consistent range per dimension is standard.</p>
-<p class="key"><span>Key point</span>Before training on any dataset, find out which action space it uses; mixing them silently breaks a policy.</p></section>
+<p>A policy is a function from what the robot senses to what the robot should do next, called many times a second.</p>
+<figure class="gfig card narrow"><img src="img/guide/g-ctrl.jpg" width="1396" height="814" loading="lazy" alt="A loop of four boxes: sense, policy, robot, world, connected by observation, action, physical effect and new state"><figcaption>One cycle. Each action changes what the robot sees next.</figcaption></figure>
+<p>The <strong>observation</strong> is camera images plus the instruction. <strong>Proprioception</strong> is the robot&rsquo;s own state: joint angles and how far the gripper is open. The <strong>action</strong> is the command sent to the robot. Learned policies typically run at 10 to 50 Hz, with a classical motor controller underneath running at 500 Hz or more.</p>
+<p>This loop is the biggest conceptual shift for anyone coming from ordinary machine learning. A classifier&rsquo;s test inputs do not depend on the classifier. A policy&rsquo;s outputs change its own future inputs, so a small mistake moves the robot somewhere the model may never have seen.</p></section>
 
-<section class="note-sec"><h2 id="s27">Imitation learning, compounding error and action chunking</h2>
-<p class="lede">The dominant way to teach robots today: show the task, then train the policy to copy the demonstrations.</p>
-<figure class="gfig card slide"><img src="img/guide/s27.jpg" width="1500" height="586" loading="lazy" alt="Imitation learning, compounding error and action chunking"></figure>
-<p>Behaviour cloning is supervised learning: observation in, demonstrated action out. Its weakness is compounding error: the policy drifts into states that the demonstrations never visited, and it has no data on how to recover. Action chunking predicts a short sequence of future actions at once, for example the next 50 steps. That shortens the effective horizon, keeps motion smooth, and gives a slow model time to compute the next chunk.</p>
-<p class="key"><span>Key point</span>Predicting a chunk of future actions, not one, is the simple trick that made imitation learning work.</p></section>
+<section class="note-sec"><h2 id="actions">Action spaces: what exactly does the policy output?</h2>
 
-<section class="note-sec"><h2 id="s28">Reinforcement learning and the classical layer underneath</h2>
-<p class="lede">Learned policies do not replace control engineering; they sit on top of it.</p>
-<figure class="gfig card slide"><img src="img/guide/s28.jpg" width="1500" height="586" loading="lazy" alt="Reinforcement learning and the classical layer underneath"></figure>
-<p>Reinforcement learning learns from trial and error using a reward signal. It needs enormous numbers of trials, so it works where a fast, accurate simulator exists: walking, running, balance. Manipulation with contact-rich objects is hard to simulate and rewards are hard to write, so imitation dominates there. In both cases the policy&#x27;s output goes to classical components: inverse kinematics, a joint controller, safety limits.</p>
-<p class="key"><span>Key point</span>Imitation leads in manipulation, RL in locomotion, and classical control runs under both.</p></section>
+<p>The same motion can be commanded in several ways, and the choice affects both learning and transfer between robots.</p><div class="tablewrap"><table class="gtable "><thead><tr><th>Choice</th><th>The policy outputs</th><th>Advantages</th><th>Watch out for</th></tr></thead><tbody><tr><th>Joint space</th><td>A target for every joint</td><td>Exact; no kinematics solver needed</td><td>Tied to one robot</td></tr><tr><th>End-effector space</th><td>Position and rotation of the hand</td><td>Intuitive; transfers across arms</td><td>Needs inverse kinematics; rotation formats differ</td></tr><tr><th>Absolute</th><td>Where to be</td><td>Errors do not accumulate</td><td>Depends on the workspace and calibration</td></tr><tr><th>Relative</th><td>How far to move from here</td><td>Generalises across positions</td><td>Small errors add up over time</td></tr><tr><th>Gripper</th><td>Open or close, or a width</td><td>Simple</td><td>Conventions vary between datasets</td></tr></tbody></table></div><p>Before training on any dataset, find out which action space it uses. Mixing them does not raise an error. The robot just moves strangely.</p></section>
 
-        
+<section class="note-sec"><h2 id="imitation">Imitation learning and its weak point</h2>
+
+<p>The dominant way to teach robots today is imitation: record a person doing the task, then train the policy to copy. In its simplest form, behaviour cloning, this is ordinary supervised learning with observations as inputs and demonstrated actions as targets.</p>
+<figure class="gfig card "><img src="img/guide/g-compound.jpg" width="1180" height="388" loading="lazy" alt="A dashed straight line for the demonstrated path and a solid line that drifts further away from it over time"><figcaption>Compounding error. The policy drifts into states the demonstrations never visited.</figcaption></figure>
+<p>Its weakness is compounding error. Each small mistake changes the next observation. Away from the demonstrations the policy has no data on how to recover, so the errors grow. The fixes are more varied data, demonstrations of recovery, and action chunking.</p></section>
+
+<section class="note-sec"><h2 id="chunking">Action chunking</h2>
+
+<figure class="gfig card "><img src="img/guide/action_curves.jpg" width="1500" height="650" loading="lazy" alt="Three curves of real robot actions over twelve seconds, x motion, z motion and gripper, with alternating shaded bands marking chunks"><figcaption>Real actions from one episode of the LIBERO benchmark, cut into chunks of ten steps.</figcaption></figure>
+<p>Instead of predicting one action, the policy predicts a short sequence of future actions in one call. This shortens the number of decisions in a task, keeps motion smooth, and gives a slow model time to compute the next chunk while the current one executes. Re-plan before the chunk ends to stay responsive. It is a simple trick, and it is a large part of why imitation learning started working well.</p></section>
+
+<section class="note-sec"><h2 id="rl">Reinforcement learning and the layer underneath</h2>
+
+<p>Reinforcement learning learns by trial and error from a reward. It needs enormous numbers of trials, so it works where a fast, accurate simulator exists: walking, running and balance. It struggles where trials are slow or unsafe, rewards are hard to write, and contact is hard to simulate, which describes most everyday manipulation. Imitation leads there, and reinforcement learning is increasingly used afterwards to raise an imitation policy&rsquo;s success rate.</p>
+<figure class="gfig card small"><img src="img/guide/g-stack.jpg" width="764" height="814" loading="lazy" alt="A stack of four layers from top to bottom: learned policy, kinematics and planning, joint controller, motors and safety limits"><figcaption>Learned policies do not replace control engineering. They sit on top of it.</figcaption></figure></section>
+
+<section class="note-sec split2">
+<div><h2 id="mistakes">Common mistakes</h2><ul><li><strong>Mixing action spaces.</strong> The most common silent bug in robot learning.</li><li><strong>Collecting only perfect demonstrations.</strong> The policy then never sees how to recover from a mistake.</li><li><strong>Judging by offline error.</strong> Low error on recorded data says little about closed-loop behaviour.</li></ul></div>
+<div><h2 id="terms">Terms</h2><dl class="terms"><dt>Policy</dt><dd>The function from observations to actions.</dd><dt>Proprioception</dt><dd>The robot&rsquo;s sense of its own joints.</dd><dt>Behaviour cloning</dt><dd>Supervised learning of actions from demonstrations.</dd><dt>Closed loop</dt><dd>Actions affect the next observation.</dd></dl></div></section>
+
+        <section class="note-sec split2 more"><div><h2>In my work</h2><ul class="links"><li><a href="world-action-models.html">World-action models: policies evaluated in the LIBERO benchmark</a></li></ul></div><div><h2>Further reading</h2><ul class="links"><li><a href="https://arxiv.org/abs/2304.13705">Zhao et al., 2023. Learning Fine-Grained Bimanual Manipulation with Low-Cost Hardware (action chunking).</a></li><li><a href="https://arxiv.org/abs/1011.0686">Ross et al., 2010. A Reduction of Imitation Learning and Structured Prediction to No-Regret Online Learning (DAgger).</a></li></ul></div></section>
         <nav class="pager" aria-label="Guide pages"><a href="guide-foundation-models.html"><span>Previous</span>Foundation models and adaptation</a><a class="pnext" href="guide-robot-policies.html"><span>Next</span>Robot policies today</a></nav>
       </article>
     </div>
